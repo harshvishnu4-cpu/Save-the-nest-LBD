@@ -15,13 +15,15 @@
     --bad:#e0533b;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
-  html,body{height:100%;}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none;}
   body{
     font-family:'Baloo 2','Fredoka',system-ui,sans-serif;
     /* sandy jungle-toned backdrop fills the letterbox on any aspect ratio */
     background:radial-gradient(130% 130% at 50% 28%, #ecc370 0%, #d7a747 55%, #b1842f 100%);
     display:flex;align-items:center;justify-content:center;
-    min-height:100vh;min-height:100dvh;overflow:hidden;color:var(--ink);
+    /* lock to the viewport so mobile browsers can't scroll / rubber-band / pull-to-refresh */
+    position:fixed;inset:0;width:100%;
+    min-height:100vh;min-height:100dvh;color:var(--ink);
   }
 
   /* ---------- STAGE (fixed 16:9, scaled to fit) ---------- */
@@ -31,8 +33,23 @@
     background:#e9b94f url('assets/background.webp') center/cover no-repeat;
     overflow:hidden;
     box-shadow:0 30px 80px -20px rgba(0,0,0,.7);
-    user-select:none;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;
   }
+
+  /* ---------- ROTATE-TO-LANDSCAPE PROMPT (touch devices in portrait) ---------- */
+  /* the game is a fixed 16:9 stage, so portrait phones get a friendly "turn me" screen */
+  #rotate{display:none;}
+  @media (orientation:portrait) and (pointer:coarse){
+    #rotate{
+      display:flex;position:fixed;inset:0;z-index:100000;
+      flex-direction:column;align-items:center;justify-content:center;text-align:center;
+      background:radial-gradient(130% 130% at 50% 30%, #f3cf7d 0%, #d7a747 60%, #b1842f 100%);
+      color:#5a3d18;padding:8vw;
+    }
+    .rotate-phone{font-size:24vw;line-height:1;animation:rotateHint 1.9s ease-in-out infinite;}
+    #rotate p{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:6.5vw;line-height:1.25;margin-top:6vw;max-width:84vw;text-shadow:0 2px 0 #fff3d6;}
+  }
+  @keyframes rotateHint{0%,18%{transform:rotate(0)}50%,68%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
 
   /* ---------- BEE INSTRUCTOR (top-left) ---------- */
   #bee{position:absolute;top:40px;left:185px;width:600px;height:360px;z-index:22;}
@@ -71,25 +88,6 @@
   @keyframes bubbleIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
   .bee-bubble.pop{transform:scale(1.04);}
 
-  /* ---------- TOP-RIGHT HUD ---------- */
-  #hud{
-    position:absolute;top:182px;right:36px;z-index:25;
-    display:flex;gap:14px;align-items:center;
-  }
-  .chip{
-    background:linear-gradient(#fff8e6,#f3dca5);
-    border:3px solid #b98a45;border-radius:30px;
-    padding:9px 22px;font-weight:800;font-size:30px;color:var(--ink);
-    box-shadow:0 5px 0 rgba(150,110,40,.4),inset 0 2px 4px rgba(255,255,255,.7);
-  }
-  .icon-btn{
-    width:60px;height:60px;border-radius:50%;cursor:pointer;border:3px solid #b98a45;
-    background:linear-gradient(#fff8e6,#f3dca5);font-size:30px;
-    box-shadow:0 5px 0 rgba(150,110,40,.4),inset 0 2px 4px rgba(255,255,255,.7);
-    display:flex;align-items:center;justify-content:center;transition:transform .08s, box-shadow .08s;
-    color:var(--ink);
-  }
-  .icon-btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(150,110,40,.4);}
 
 
   /* ---------- STONE DROP BOXES (Long / Short) ---------- */
@@ -300,7 +298,6 @@
 
   /* gameplay UI stays hidden until the entry animation brings it in */
   #stage.intro-mode #bee,
-  #stage.intro-mode #hud,
   #stage.intro-mode #nest,
   #stage.intro-mode .basket{opacity:0;}
 
@@ -331,11 +328,6 @@
     </div>
   </div>
 
-  <!-- HUD -->
-  <div id="hud">
-    <div class="icon-btn" id="btnSound" title="Sound on/off">🔊</div>
-  </div>
-
   <!-- nest pile (decoration, bottom-left) -->
   <img id="nest" src="assets/pile.webp" alt="Twig nest pile">
 
@@ -361,6 +353,12 @@
   <div id="cover">
     <img class="cover-play" src="assets/play-button.svg" alt="Play">
   </div>
+</div>
+
+<!-- portrait prompt — shown only on touch devices held in portrait (see CSS) -->
+<div id="rotate">
+  <div class="rotate-phone">📱</div>
+  <p>Please turn your device sideways to play! 🐝</p>
 </div>
 
 <script>
@@ -434,6 +432,11 @@ window.addEventListener('resize', scheduleFit);
 window.addEventListener('orientationchange', scheduleFit);
 if(window.visualViewport) window.visualViewport.addEventListener('resize', scheduleFit);
 fitStage();
+// re-fit after the page (and the mobile address bar) settle, so the first frame isn't mis-scaled
+window.addEventListener('load', scheduleFit);
+window.addEventListener('pageshow', scheduleFit);
+// no long-press "save image"/context menu over the game art (kept off the QA tool)
+stage.addEventListener('contextmenu', e=>e.preventDefault());
 
 /* convert a clientX/clientY into stage coordinates (account for scale) */
 function toStage(clientX, clientY){
@@ -585,11 +588,6 @@ const Audio = (()=>{
 
   return { ensure, startBgm, pickup, type, correct, wrong, buzz, fanfare, toggle, isOn:()=>on };
 })();
-
-document.getElementById('btnSound').addEventListener('click', e=>{
-  const on = Audio.toggle();
-  e.currentTarget.textContent = on ? '🔊' : '🔇';
-});
 
 /* ============================================================
    GAME ENGINE

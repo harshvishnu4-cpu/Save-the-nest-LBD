@@ -17,6 +17,13 @@ friendly queen-bee mascot.
 
 - **Fixed stage:** everything lives in a `1920×1080` `#stage` that is uniformly `transform: scale()`d to
   fit any screen (`flex:none` prevents flex-shrink distortion). All coordinates below are in this 1920×1080 space.
+- **Responsive / all devices:** `fitStage()` scales by `min(vw/1920, vh/1080)` using `visualViewport` (re-runs
+  on `resize`/`orientationchange`/`load`/`pageshow`), the stage stays centred, and the sandy radial-gradient
+  body fills the **letterbox** on any aspect ratio (4:3, ultrawide, etc.). The page is **locked** for mobile
+  (`position:fixed`, `overflow:hidden`, `overscroll-behavior:none`, `user-scalable=no`) — no scroll, zoom,
+  rubber-band or pull-to-refresh — and long-press menus are blocked over the stage. On **touch devices held
+  in portrait**, a friendly **rotate-to-landscape** prompt (`#rotate`, pure CSS media query) covers the screen
+  until the device is turned (the layout is fixed-landscape).
 - **Drag & drop:** Pointer Events (`pointerdown/move/up`, `setPointerCapture`). `toStage(clientX,clientY)`
   converts screen → stage coords accounting for the scale.
 - **Animation:** Web Animations API (`element.animate(...)`) for one-shot effects; CSS `@keyframes` for
@@ -95,7 +102,6 @@ friendly queen-bee mascot.
 | Items (2 per level) | upper-right band, **short item on the LEFT, long on the RIGHT** (`IX0=805, IX1=1705, ITEM_CY=255` → centres x≈1030 / x≈1480). Each item's **size + tilt is set per-level** in `LEVELS` (`w/h/rot`); pieces lie **nearly flat** (`rot` ≈ −66°…−90°) so the two lengths read side-by-side |
 | `Long` box `#basketLong`  | stone frame `group-38510`, `left:676 top:408`, `570×435`; "Long" title centred **inside** the box — **Fredoka One** 92px, `#804206`, `opacity:.45` (written-into-sand look, no stroke) |
 | `Short` box `#basketShort`| stone frame `group-38510`, `right:42 top:408`, `570×435`; "Short" title inside the box, same style |
-| Sound toggle `#hud` | top-right (🔊 / 🔇) |
 
 Drop targets are invisible `.catch` rectangles inside each box.
 
