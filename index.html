@@ -387,30 +387,34 @@ const SIZE = {
 };
 
 /* ============================================================
-   LEVELS — each item is { art, cat, w, h, rot }: which image, which
-   bin (Long / Short), and its PER-LEVEL display size (px) + tilt.
-   The same art shows up at different lengths in different levels, so
-   the length DIFFERENCE within a pair is tuned per level — a big
-   difference is easy to sort, a small one is harder. Items lie nearly
-   flat so their lengths read side-by-side. The long item is listed
-   FIRST (it lands on the right); the short one lands on the left.
+   LEVELS — each item is { art, cat, w, h, rot, left?, top? }: which image,
+   which bin (`cat`: Long / Short — NOT necessarily the visual length, see L6),
+   and its PER-LEVEL display size (px) + tilt (+ optional pinned position).
+   The same art shows up at different lengths across levels, so the length
+   DIFFERENCE within a pair is tuned per level (big diff = easy, small = hard).
+   Items lie nearly flat so their lengths read side-by-side. The Long-cat item
+   is listed FIRST (it lands on the right); the Short-cat one lands on the left.
+   L1 is the guided tutorial; L2–L6 are the free-play game.
 ============================================================ */
 const LEVELS = [
-  // L1 — long twig vs short twig (the guided tutorial) — clear, easy difference
+  // L1 — TUTORIAL: long twig vs short twig — clear, easy difference (guided)
   [ {art:'long',  cat:'long',  w:193, h:450, rot:-90},
     {art:'short', cat:'short', w:225, h:225, rot:-76} ],
-  // L2 — long leaf vs short feather — VERY BIG difference
+  // L2 — short leaf vs long leaf — VERY BIG difference (one very long, one very short)
   [ {art:'longleaf', cat:'long',  w:300, h:300, rot:-85},
-    {art:'feather',  cat:'short', w:150, h:150, rot:-68} ],
-  // L3 — long twig vs short feather — BIG difference
+    {art:'leaf',     cat:'short', w:110, h:110, rot:-70} ],
+  // L3 — long leaf vs short feather — VERY BIG difference
+  [ {art:'longleaf', cat:'long',  w:300, h:300, rot:-85},
+    {art:'feather',  cat:'short', w:145, h:145, rot:-68} ],
+  // L4 — short feather vs long twig — BIG difference
   [ {art:'long',    cat:'long',  w:193, h:450, rot:-90},
     {art:'feather', cat:'short', w:210, h:210, rot:-66} ],
-  // L4 — long twig vs short twig — LESS difference
+  // L5 — long twig vs short twig — LESS difference
   [ {art:'long',  cat:'long',  w:180, h:420, rot:-90},
     {art:'short', cat:'short', w:300, h:300, rot:-78} ],
-  // L5 — long twig vs short leaf (leaf pinned to the exact size/spot from the design)
-  [ {art:'long', cat:'long',  w:174, h:405, rot:-90},
-    {art:'leaf', cat:'short', w:162, h:162, rot:-80, left:912.5, top:192.5} ],
+  // L6 — short twig vs short leaf — LESS difference; TWIST: the (short) twig still goes in the LONG basket
+  [ {art:'short', cat:'long',  w:245, h:245, rot:-78},
+    {art:'leaf',  cat:'short', w:190, h:190, rot:-80} ],
 ];
 
 /* ============================================================

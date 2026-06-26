@@ -114,10 +114,13 @@ lengths and the length *difference* within a pair is tuned (big diff = easy, sma
 Items lie nearly flat so the two lengths read side-by-side. Long-category → **Long** box; short → **Short**.
 
 1. **L1 (tutorial):** long twig *(long)* + short twig *(short)* — clear, **easy** difference
-2. **L2:** long leaf *(long)* + short feather *(short)* — **very big** difference
-3. **L3:** long twig *(long)* + short feather *(short)* — **big** difference
-4. **L4:** long twig *(long)* + short twig *(short)* — **less** difference (closer than the tutorial)
-5. **L5:** long twig *(long)* + short leaf *(short)* — short leaf kept small
+2. **L2:** short leaf *(short)* + long leaf *(long)* — **very big** difference
+3. **L3:** long leaf *(long)* + short feather *(short)* — **very big** difference
+4. **L4:** short feather *(short)* + long twig *(long)* — **big** difference
+5. **L5:** long twig *(long)* + short twig *(short)* — **less** difference
+6. **L6:** short twig + short leaf *(short)* — **less** difference; **TWIST** — the (short) twig still goes in the **Long** basket (`cat:long`), the leaf in **Short**
+
+(6 levels total. `cat` — not visual length — decides the basket; L6 leans on that. The tutorial item pair is unchanged.)
 
 (The "short feather" reuses `long-feather.webp` sized small; the blue feather `feather2` is now unused by levels.)
 

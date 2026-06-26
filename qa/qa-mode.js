@@ -68,31 +68,32 @@ function detectScreen() {
 }
 
 // Map the set of on-board item art keys (<img alt>) to a 0-based level index.
-// LEVELS: 0 [long,short]  1 [longleaf,feather]  2 [long,feather]  3 [long,short]  4 [long,leaf]
-// Long+short twig is shared by L1 (tutorial) and L4, so it can't be told apart by
-// art alone — those defer to the nest-scale fallback (L1 scale 1.0, L4 scale 0.55).
+// LEVELS: 0 [long,short]  1 [longleaf,leaf]  2 [longleaf,feather]  3 [long,feather]
+//         4 [long,short]  5 [short,leaf]
+// Long+short twig is shared by L1 (tutorial, idx0) and L5 (idx4), so those can't be
+// told apart by art alone — they defer to the nest-scale fallback (idx0 scale 1.0, idx4 0.52).
 function levelFromItems() {
     const arts = new Set(
         Array.from(document.querySelectorAll('#stage .item img'))
             .map(img => img.getAttribute('alt'))
     );
     if (!arts.size) return null;
-    if (arts.has('longleaf')) return 1;                            // long leaf — only L2
-    if (arts.has('leaf'))     return 4;                            // short leaf — only L5
-    if (arts.has('feather'))  return arts.has('long') ? 2 : null;  // long twig + short feather → L3
-    return null;        // {long twig, short twig} (L1/L4) or a lone piece — defer to nest scale
+    if (arts.has('longleaf')) return arts.has('feather') ? 2 : 1;  // +short feather → L3; +short leaf → L2
+    if (arts.has('feather'))  return 3;                            // short feather + long twig → L4
+    if (arts.has('leaf'))     return 5;                            // short leaf + short twig → L6
+    return null;        // {long twig, short twig} (idx0 / idx4) or a lone piece — defer to nest scale
 }
 
 // Fallback level read from the nest pile's inline transform. updatePile() sets
-// scale = 1 - 0.6 * (i / (LEVELS.length-1)) with LEVELS.length === 5, i.e.
-// L1→1.0, L2→0.85, L3→0.70, L4→0.55, L5→0.40. (Keep in sync with updatePile.)
+// scale = 1 - 0.6 * (i / (LEVELS.length-1)) with LEVELS.length === 6, i.e.
+// L1→1.0, L2→0.88, L3→0.76, L4→0.64, L5→0.52, L6→0 (shrinks away). (Keep in sync with updatePile.)
 function levelFromNestScale() {
     const nest = document.getElementById('nest');
     if (!nest) return null;
     const m = /scale\(\s*([\d.]+)/.exec(nest.style.transform || '');
     if (!m) return null;
-    const i = Math.round((1 - parseFloat(m[1])) / 0.15);   // 0.15 = 0.6 / (5-1)
-    return (i >= 0 && i <= 4) ? i : null;
+    const i = Math.round((1 - parseFloat(m[1])) / 0.12);   // 0.12 = 0.6 / (6-1)
+    return (i >= 0 && i <= 5) ? i : null;
 }
 
 // Best-effort CSS selector — display purpose only, not used to resolve elements.
