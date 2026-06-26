@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"console.log\\('node ok', process.version\\)\")",
+      "Bash(npx --version)",
+      "Bash(node _align.js)",
+      "Bash(node _align2.js)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(node _layout.js)",
+      "Bash(cd \"d:\\\\Save the nest LBD 2\" && rm -f _layout.js _lay_*.png && rm -rf node_modules package.json package-lock.json && ls)",
+      "Bash(node _g.js)"
+    ],
+    "additionalDirectories": [
+      "D:\\Save the nest LBD 2"
+    ]
+  }
+}

@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Save the Nest — Sort the Items</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Fredoka:wght@500;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#5a3d18;
+    --ink2:#4a2f0e;
+    --good:#5fbb46;
+    --bad:#e0533b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Baloo 2','Fredoka',system-ui,sans-serif;
+    /* sandy jungle-toned backdrop fills the letterbox on any aspect ratio */
+    background:radial-gradient(130% 130% at 50% 28%, #ecc370 0%, #d7a747 55%, #b1842f 100%);
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;min-height:100dvh;overflow:hidden;color:var(--ink);
+  }
+
+  /* ---------- STAGE (fixed 16:9, scaled to fit) ---------- */
+  #stage{
+    position:relative;width:1920px;height:1080px;flex:none;   /* never let flex shrink/distort it */
+    transform-origin:center center;
+    background:#e9b94f url('assets/background.webp') center/cover no-repeat;
+    overflow:hidden;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.7);
+    user-select:none;touch-action:none;
+  }
+
+  /* ---------- BEE INSTRUCTOR (top-left) ---------- */
+  #bee{position:absolute;top:40px;left:185px;width:600px;height:360px;z-index:22;}
+  .bee-sprite{position:absolute;left:0;top:0;width:300px;height:320px;cursor:pointer;
+    will-change:transform;animation:beeHover 4.0s ease-in-out infinite;}
+  .bee-sprite .bee-gif{display:block;width:100%;height:100%;object-fit:contain;
+    transform:scaleX(-1);   /* mirrored so she faces her speech bubble / the play area on the right */
+    filter:drop-shadow(0 10px 12px rgba(40,30,0,.28));}
+  /* smooth, floaty hover (gentle bob + drift + tilt) */
+  @keyframes beeHover{
+    0%  {transform:translate(0,0) rotate(-2deg)}
+    50% {transform:translate(7px,-15px) rotate(2deg)}
+    100%{transform:translate(0,0) rotate(-2deg)}
+  }
+  /* cheer runs on the inner image so the wrapper's hover-bob keeps flowing (no jump) */
+  .bee-sprite.cheer .bee-gif{animation:beeCheer .8s ease;}
+  /* keyframes keep scaleX(-1) so the mirrored bee doesn't un-flip mid-cheer */
+  @keyframes beeCheer{0%{transform:translateY(0) scaleX(-1)}20%{transform:translateY(-46px) rotate(-10deg) scaleX(-1)}45%{transform:translateY(0) scaleX(-1)}65%{transform:translateY(-36px) rotate(10deg) scaleX(-1)}100%{transform:translateY(0) scaleX(-1)}}
+
+  .bee-bubble{
+    display:none;   /* shown only during the tutorial (setBubble) */
+    /* sits just to the right of the bee — close, but not overlapping her artwork */
+    position:absolute;left:278px;top:-31px;
+    width:359px;height:233px;
+    background:url('assets/dialogue-box.svg') center/100% 100% no-repeat; /* tail bottom-left, hex top-right */
+    align-items:center;justify-content:center;text-align:center;
+    font-family:'Fredoka','Baloo 2',sans-serif;font-weight:600;font-size:40px;line-height:1.1;
+    color:#6a4716;
+    /* symmetric padding → flex centres the text in the middle of the bubble */
+    padding:38px 40px 40px 40px;
+    filter:drop-shadow(0 8px 10px rgba(60,40,0,.18));
+    transition:transform .16s;z-index:30;
+    pointer-events:none;   /* display-only: never block drags underneath */
+  }
+  .bee-bubble.show{display:flex;animation:bubbleIn .42s cubic-bezier(.2,1.5,.4,1);}
+  @keyframes bubbleIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+  .bee-bubble.pop{transform:scale(1.04);}
+
+  /* ---------- TOP-RIGHT HUD ---------- */
+  #hud{
+    position:absolute;top:182px;right:36px;z-index:25;
+    display:flex;gap:14px;align-items:center;
+  }
+  .chip{
+    background:linear-gradient(#fff8e6,#f3dca5);
+    border:3px solid #b98a45;border-radius:30px;
+    padding:9px 22px;font-weight:800;font-size:30px;color:var(--ink);
+    box-shadow:0 5px 0 rgba(150,110,40,.4),inset 0 2px 4px rgba(255,255,255,.7);
+  }
+  .icon-btn{
+    width:60px;height:60px;border-radius:50%;cursor:pointer;border:3px solid #b98a45;
+    background:linear-gradient(#fff8e6,#f3dca5);font-size:30px;
+    box-shadow:0 5px 0 rgba(150,110,40,.4),inset 0 2px 4px rgba(255,255,255,.7);
+    display:flex;align-items:center;justify-content:center;transition:transform .08s, box-shadow .08s;
+    color:var(--ink);
+  }
+  .icon-btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(150,110,40,.4);}
+
+
+  /* ---------- STONE DROP BOXES (Long / Short) ---------- */
+  .basket{
+    position:absolute;top:408px;width:570px;height:435px;z-index:8;
+    background-size:100% 100%;background-repeat:no-repeat;
+    background-image:url('assets/group-38510.webp');
+    filter:drop-shadow(0 10px 14px rgba(0,0,0,.25));
+    transition:transform .12s, filter .16s;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #basketLong { left:676px;}
+  #basketShort{ right:42px;}
+  /* "Long" / "Short" titles — written into the sand (translucent, no stroke) */
+  .basket-label{font-family:'Fredoka One','Baloo 2',sans-serif;font-weight:400;font-style:normal;
+    font-size:92px;line-height:normal;color:#804206;opacity:0.45;
+    pointer-events:none;}
+
+  /* tutorial: pulsing highlight on the box being pointed out */
+  .basket.hint{animation:boxHint 1.5s ease-in-out infinite;}
+  /* tutorial cue — a gentle scale pulse (no colour glow) */
+  @keyframes boxHint{
+    0%,100%{transform:scale(1);}
+    50%    {transform:scale(1.07);}
+  }
+
+  /* drop region = the box interior (invisible) */
+  .catch{position:absolute;left:9%;right:9%;top:11%;bottom:11%;}
+  /* hover feedback: correct = a subtle lift; wrong = a gentle shake only (no green or red glow) */
+  .basket.glow-ok {transform:scale(1.05);}   /* correct-box hover lift; no red "wrong" glow */
+  .basket.flash-good{animation:binGood .5s;}
+  .basket.flash-bad{animation:binBad .45s;}
+  @keyframes binGood{0%,100%{transform:none}35%{transform:scale(1.05) translateY(-8px)}}
+  @keyframes binBad{0%,100%{transform:translateX(0)}20%{transform:translateX(-13px)}40%{transform:translateX(13px)}60%{transform:translateX(-9px)}80%{transform:translateX(9px)}}
+
+  /* ---------- NEST PILE (decoration, bottom-left) ---------- */
+  #nest{position:absolute;left:-15px;top:480px;width:590px;height:auto;z-index:5;
+    pointer-events:none;filter:drop-shadow(0 12px 14px rgba(0,0,0,.18));}
+
+  /* ---------- ITEMS ---------- */
+  /* the custom hand (grab) cursor shows over a piece — see the CUSTOM CURSOR block */
+  .item{
+    position:absolute;z-index:12;
+    filter:drop-shadow(0 8px 7px rgba(60,30,0,.4));
+    transition:filter .15s, transform .12s;
+    will-change:transform;                         /* GPU-composite the launch/drag/drop motion */
+  }
+  .item img{display:block;width:100%;height:100%;pointer-events:none;transition:transform .14s ease;}
+  .item.dragging{z-index:40;transition:none;filter:drop-shadow(0 22px 16px rgba(0,0,0,.5));}
+  .item.dragging img{transform:scale(1.1);}   /* lift while held */
+  .item.idle{animation:sway 4.0s ease-in-out infinite;}
+  @keyframes sway{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(calc(var(--r) + 2deg)) translateY(-5px)}}
+
+  /* tutorial: the piece the bee is pointing out glows (declared after .idle so it wins,
+     before .wrong so the shake still wins on a wrong drop) */
+  .item.tut-target{animation:targetPulse 1.5s ease-in-out infinite;}
+  @keyframes targetPulse{
+    0%,100%{filter:drop-shadow(0 0 6px rgba(255,236,150,.85)) drop-shadow(0 8px 7px rgba(60,30,0,.4));}
+    50%    {filter:drop-shadow(0 0 24px rgba(255,215,70,1)) drop-shadow(0 8px 7px rgba(60,30,0,.4));}
+  }
+
+  .item.wrong{animation:shake .6s;filter:drop-shadow(0 8px 7px rgba(60,30,0,.4));}   /* gentle shake only — no red "incorrect" glow */
+  @keyframes shake{
+    0%,100%{transform:rotate(var(--r)) translateX(0)}
+    20%{transform:rotate(var(--r)) translateX(-12px)}
+    40%{transform:rotate(var(--r)) translateX(12px)}
+    60%{transform:rotate(var(--r)) translateX(-8px)}
+    80%{transform:rotate(var(--r)) translateX(8px)}
+  }
+
+  /* sparkle burst on correct drop */
+  .spark{position:absolute;width:14px;height:14px;border-radius:50%;pointer-events:none;z-index:45;
+    background:radial-gradient(circle,#fff 0,#ffe27a 50%,rgba(255,200,60,0) 70%);}
+  /* glowing stars that rise out of the basket on a correct drop */
+  .star{position:absolute;pointer-events:none;z-index:46;line-height:1;color:#fff2a8;
+    text-shadow:0 0 6px #fff,0 0 14px #ffe680,0 0 26px #ffc21f,0 0 40px #ff9e00;
+    will-change:transform,opacity;}
+
+  /* ghost twig — drag-and-drop demo hint */
+  .ghost{position:absolute;z-index:11;pointer-events:none;
+    filter:drop-shadow(0 0 10px rgba(255,255,255,.7)) drop-shadow(0 10px 8px rgba(60,30,0,.35));}
+  .ghost img{display:block;width:100%;height:100%;}
+
+  /* ambient: falling leaves + floating air motes (decoration) */
+  .fleaf{position:absolute;z-index:3;pointer-events:none;will-change:transform,opacity;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.12));}
+  .amote{position:absolute;z-index:3;pointer-events:none;border-radius:50%;will-change:transform,opacity;
+    background:radial-gradient(circle,#fff 0,rgba(255,250,205,.75) 45%,rgba(255,240,175,0) 72%);}
+
+  /* ---------- OVERLAY ---------- */
+  #overlay{
+    position:absolute;inset:0;z-index:60;display:none;
+    align-items:center;justify-content:center;flex-direction:column;gap:18px;
+    background:radial-gradient(circle at 50% 38%,rgba(255,250,235,.94),rgba(214,170,96,.95));
+    text-align:center;padding:30px;
+  }
+  #overlay.show{display:flex;animation:fade .46s;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  #ovIcon{font-size:150px;line-height:1;animation:bob 2.0s ease-in-out infinite;filter:drop-shadow(0 8px 10px rgba(0,0,0,.2));}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-16px) rotate(3deg)}}
+  #ovTitle{font-size:78px;font-weight:800;color:#4a2f0e;text-shadow:0 3px 0 #fff;}
+  #ovText{font-size:34px;color:#6b4a1c;font-weight:600;max-width:900px;}
+  .btn{
+    margin-top:10px;border:none;cursor:pointer;font-family:inherit;font-weight:800;
+    font-size:38px;letter-spacing:.5px;color:#fff;padding:20px 56px;border-radius:50px;
+    background:linear-gradient(#67c24c,#3f9a2e);
+    box-shadow:0 8px 0 #2e7320,0 12px 20px rgba(0,0,0,.3);
+    transition:transform .08s, box-shadow .08s;
+    animation:btnGlow 2.0s ease-in-out infinite;
+  }
+  .btn:active{transform:translateY(6px);box-shadow:0 2px 0 #2e7320;}
+  @keyframes btnGlow{
+    0%,100%{box-shadow:0 8px 0 #2e7320,0 12px 20px rgba(0,0,0,.3);}
+    50%    {box-shadow:0 8px 0 #2e7320,0 12px 30px rgba(103,194,76,.75);}
+  }
+
+  /* level-complete celebration — leaf confetti */
+  .confetti{position:absolute;z-index:65;pointer-events:none;will-change:transform,opacity;
+    -webkit-backface-visibility:hidden;backface-visibility:hidden;
+    filter:drop-shadow(0 2px 3px rgba(40,30,0,.25));}
+
+
+  /* ---------- INTRO / SPLASH SCREEN ---------- */
+  #intro{
+    position:absolute;inset:0;z-index:80;cursor:pointer;
+    background:#e9b94f url('assets/background.webp') center/cover no-repeat;
+  }
+  #intro.out{animation:introOut .34s ease forwards;}
+  @keyframes introOut{to{opacity:0;}}
+
+  /* ---------- TITLE / COVER SCREEN (first screen, with Play button) ---------- */
+  #cover{
+    position:absolute;inset:0;z-index:90;cursor:pointer;
+    background:#e9b94f url('assets/cover-page.webp') center/cover no-repeat;
+  }
+  #cover.out{animation:introOut .34s ease forwards;}
+  .cover-play{
+    position:absolute;left:50%;top:836px;width:221px;height:auto;cursor:pointer;
+    filter:drop-shadow(0 12px 16px rgba(60,40,0,.4));
+    transform:translateX(-50%);transform-origin:center center;
+    animation:playPulse 1.7s ease-in-out infinite;will-change:transform;
+  }
+  @keyframes playPulse{
+    0%,100%{transform:translateX(-50%) scale(1)}
+    50%    {transform:translateX(-50%) scale(1.07)}
+  }
+  /* tutorial → game hand-off — full-screen scene (design slide 63): the flying bee
+     flies in, then the bubble appears, then the text types (showHandoff). */
+  #handoff{position:absolute;inset:0;z-index:80;cursor:pointer;
+    background:#e9b94f url('assets/background.webp') center/cover no-repeat;}
+  #handoff.out{animation:introOut .34s ease forwards;}
+  .handoff-bee{position:absolute;left:140px;top:250px;width:560px;height:auto;z-index:2;
+    filter:drop-shadow(0 18px 22px rgba(40,30,0,.32));will-change:transform,opacity;}
+  .handoff-box{position:absolute;left:560px;top:130px;width:540px;height:300px;z-index:3;opacity:0;
+    background:url('assets/dialogue-box.svg') center/100% 100% no-repeat;
+    display:flex;align-items:center;justify-content:center;
+    padding:40px 52px 56px 50px;   /* centre text in the white area, clear of tail + hexagons */
+    filter:drop-shadow(0 12px 16px rgba(60,40,0,.18));}
+  .handoff-box.show{opacity:1;animation:introBubblePop .5s cubic-bezier(.2,1.5,.4,1) both;}
+  .handoff-text{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:54px;line-height:1.08;
+    color:#6a4716;text-align:center;text-shadow:0 3px 0 #fff6d8;}
+
+  /* ---------- FINALE SCREEN (after the last level) ---------- */
+  #finale{position:absolute;inset:0;z-index:70;overflow:hidden;
+    background:#cdd86a url('assets/last-screen.webp') center/cover no-repeat;}
+  #finale.out{animation:introOut .35s ease forwards;}
+  .finale-fly{position:absolute;left:90px;top:90px;width:300px;height:auto;z-index:4;pointer-events:none;
+    filter:drop-shadow(0 14px 18px rgba(40,30,0,.32));will-change:transform,opacity;}
+  .finale-bee{position:absolute;left:90px;top:90px;width:300px;height:auto;z-index:4;pointer-events:none;
+    opacity:0;transform:scaleX(-1);   /* mirrored to face the bubble; hidden until she lands */
+    filter:drop-shadow(0 14px 18px rgba(40,30,0,.32));}
+  .finale-bee.show{opacity:1;animation:introFloat 4.0s ease-in-out infinite;}
+  .finale-box{position:absolute;left:362px;top:-16px;width:458px;height:309px;z-index:5;opacity:0;
+    background:url('assets/dialogue-box.svg') center/100% 100% no-repeat;
+    display:flex;align-items:center;justify-content:center;
+    /* keep text centred in the white area, clear of the bottom-left tail + top-right hexagons */
+    padding:38px 42px 54px 46px;
+    filter:drop-shadow(0 12px 16px rgba(60,40,0,.18));}
+  .finale-box.show{opacity:1;animation:introBubblePop .5s cubic-bezier(.2,1.5,.4,1) both;}
+  .finale-text{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:41px;line-height:1.1;
+    color:#6a4716;text-align:center;text-shadow:0 3px 0 #fff6d8;}
+  .finale-again{position:absolute;left:50%;bottom:70px;width:360px;height:auto;z-index:6;cursor:pointer;
+    opacity:0;transform:translateX(-50%) scale(.8);
+    filter:drop-shadow(0 10px 14px rgba(60,40,0,.4));
+    transition:opacity .35s ease, transform .35s cubic-bezier(.2,1.5,.4,1);}
+  .finale-again.show{opacity:1;transform:translateX(-50%) scale(1);animation:playPulse 1.7s ease-in-out infinite .4s;}
+  .intro-bee{position:absolute;left:140px;top:290px;width:540px;height:auto;z-index:2;
+    transform:scaleX(-1);   /* mirrored so she faces the dialogue box on the right */
+    filter:drop-shadow(0 18px 22px rgba(40,30,0,.32));animation:introFloat 4.0s ease-in-out infinite;will-change:transform;}
+  /* nest pile on the right of the start screen */
+  .intro-nest{position:absolute;right:40px;top:480px;width:780px;height:auto;z-index:1;
+    filter:drop-shadow(0 12px 14px rgba(0,0,0,.2));}
+  @keyframes introFloat{0%,100%{transform:translateY(0) rotate(-2deg) scaleX(-1)}50%{transform:translateY(-26px) rotate(2deg) scaleX(-1)}}
+  /* speech-bubble dialogue (asset: dialogue box.svg) with the prompt overlaid */
+  .intro-box{position:absolute;left:545px;top:135px;width:550px;height:316px;z-index:3;
+    background:url('assets/dialogue-box.svg') center/100% 100% no-repeat;
+    display:flex;align-items:center;justify-content:center;
+    /* keep text in the white area, clear of the bottom-left tail + top-right hexagons */
+    padding:40px 58px 48px 56px;
+    filter:drop-shadow(0 12px 16px rgba(60,40,0,.18));
+    animation:introBubblePop .66s cubic-bezier(.2,1.5,.4,1) both;}
+  .intro-text{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:56px;line-height:1.08;
+    color:#6a4716;text-align:center;text-shadow:0 3px 0 #fff6d8;}
+  @keyframes introBubblePop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+  /* the flying bee that zooms off-screen when the player taps */
+  .intro-fly{position:absolute;left:140px;top:290px;width:540px;height:auto;z-index:5;pointer-events:none;
+    filter:drop-shadow(0 16px 20px rgba(40,30,0,.32));will-change:transform;}
+
+  /* gameplay UI stays hidden until the entry animation brings it in */
+  #stage.intro-mode #bee,
+  #stage.intro-mode #hud,
+  #stage.intro-mode #nest,
+  #stage.intro-mode .basket{opacity:0;}
+
+  /* ---------- HONEYCOMB CELL TRANSITION ---------- */
+  /* A grid of honeycomb cells (transition-bee-comb.svg) pops in from the centre
+     outward to cover the screen, then dissolves centre→out to reveal the game.
+     Full-viewport, above the stage, below the QA UI. */
+  /* opaque honey backing so the screen is covered the instant the transition
+     starts — the board behind never peeks while the hex cells assemble */
+  #honeycomb{position:fixed;inset:0;z-index:9000;pointer-events:none;overflow:hidden;
+    background:#f7b81f;}
+  .hexcell{position:fixed;display:block;pointer-events:none;will-change:transform,opacity;}
+
+  /* ---------- CUSTOM CURSOR (themed grab-hand) ----------
+     Shows ONLY over the draggable pieces (twigs, leaves, feathers) to signal
+     "grab & drag"; everywhere else keeps the normal cursor. Hotspot ≈ fingertips. */
+  .item{ cursor:url('assets/cursor-pointer.svg') 28 4, auto; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- bee instructor -->
+  <div id="bee">
+    <div class="bee-bubble" id="beeBubble"></div>
+    <div class="bee-sprite" id="beeSprite">
+      <img class="bee-gif" src="assets/bee-1.webp" alt="Queen bee instructor">
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="icon-btn" id="btnSound" title="Sound on/off">🔊</div>
+  </div>
+
+  <!-- nest pile (decoration, bottom-left) -->
+  <img id="nest" src="assets/pile.webp" alt="Twig nest pile">
+
+  <!-- stone drop boxes (drop targets) -->
+  <div class="basket" id="basketLong"><div class="basket-label">Long</div><div class="catch" data-cat="long" id="catchLong"></div></div>
+  <div class="basket" id="basketShort"><div class="basket-label">Short</div><div class="catch" data-cat="short" id="catchShort"></div></div>
+
+  <div id="overlay">
+    <div id="ovIcon">🪺</div>
+    <h2 id="ovTitle">Level Complete!</h2>
+    <p id="ovText">Nice sorting.</p>
+    <button class="btn" id="ovBtn">Next Level</button>
+  </div>
+
+  <!-- intro / splash screen -->
+  <div id="intro">
+    <img class="intro-bee" src="assets/bee-1.webp" alt="Queen bee">
+    <img class="intro-nest" src="assets/pile.webp" alt="Twig nest pile">
+    <div class="intro-box"><div class="intro-text">Let us start<br>sorting!</div></div>
+  </div>
+
+  <!-- title / cover screen (shown first; tap Play to begin) -->
+  <div id="cover">
+    <img class="cover-play" src="assets/play-button.svg" alt="Play">
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ASSETS
+============================================================ */
+const ART = {
+  long:     'assets/long-twig.webp',      // long twig                 -> Long
+  short:    'assets/small-twig.webp',     // short twig                -> Short
+  leaf:     'assets/short-leaf.webp',     // short leaf                -> Short
+  longleaf: 'assets/long-leaf.webp',      // long leaf                 -> Long
+  feather:  'assets/long-feather.webp',   // feather (used as the SHORT feather) -> Short
+  feather2: 'assets/long-feather-2.webp', // blue feather (unused by levels; kept for preload)
+};
+/* display sizes inside the tray (px in the 1920x1080 space).
+   Aspect ratios match each PNG so nothing is distorted.
+   `rot` (optional) = fixed display rotation matching the reference layout:
+   the twigs lie flat — long twig thick-end left, small twig thick-end right. */
+const SIZE = {
+  long:     {w:190, h:442, rot:-90},  // long twig (241x561) — flat, ~442px span
+  short:    {w:178, h:178, rot:80},   // small twig (309x310) — flat, ~205px span
+  leaf:     {w:150, h:150},           // short leaf (148x148)
+  longleaf: {w:215, h:215},           // long leaf (316x316)
+  feather:  {w:235, h:235},           // long feather (377x377)
+  feather2: {w:235, h:235},           // long feather (356x356)
+};
+
+/* ============================================================
+   LEVELS — each item is { art, cat, w, h, rot }: which image, which
+   bin (Long / Short), and its PER-LEVEL display size (px) + tilt.
+   The same art shows up at different lengths in different levels, so
+   the length DIFFERENCE within a pair is tuned per level — a big
+   difference is easy to sort, a small one is harder. Items lie nearly
+   flat so their lengths read side-by-side. The long item is listed
+   FIRST (it lands on the right); the short one lands on the left.
+============================================================ */
+const LEVELS = [
+  // L1 — long twig vs short twig (the guided tutorial) — clear, easy difference
+  [ {art:'long',  cat:'long',  w:193, h:450, rot:-90},
+    {art:'short', cat:'short', w:225, h:225, rot:-76} ],
+  // L2 — long leaf vs short feather — VERY BIG difference
+  [ {art:'longleaf', cat:'long',  w:300, h:300, rot:-85},
+    {art:'feather',  cat:'short', w:150, h:150, rot:-68} ],
+  // L3 — long twig vs short feather — BIG difference
+  [ {art:'long',    cat:'long',  w:193, h:450, rot:-90},
+    {art:'feather', cat:'short', w:210, h:210, rot:-66} ],
+  // L4 — long twig vs short twig — LESS difference
+  [ {art:'long',  cat:'long',  w:180, h:420, rot:-90},
+    {art:'short', cat:'short', w:300, h:300, rot:-78} ],
+  // L5 — long twig vs short leaf (leaf kept small)
+  [ {art:'long', cat:'long',  w:174, h:405, rot:-90},
+    {art:'leaf', cat:'short', w:235, h:235, rot:-80} ],
+];
+
+/* ============================================================
+   STAGE SCALING (keep 16:9, fit any screen)
+============================================================ */
+const stage = document.getElementById('stage');
+function fitStage(){
+  const vw = window.visualViewport ? window.visualViewport.width  : window.innerWidth;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const s = Math.min(vw/1920, vh/1080);
+  stage.style.transform = `scale(${s})`;
+}
+let fitPending = false;
+function scheduleFit(){
+  if(fitPending) return; fitPending = true;
+  requestAnimationFrame(()=>{ fitPending = false; fitStage(); });
+}
+window.addEventListener('resize', scheduleFit);
+window.addEventListener('orientationchange', scheduleFit);
+if(window.visualViewport) window.visualViewport.addEventListener('resize', scheduleFit);
+fitStage();
+
+/* convert a clientX/clientY into stage coordinates (account for scale) */
+function toStage(clientX, clientY){
+  const r = stage.getBoundingClientRect();
+  const sx = r.width / 1920;          // current scale
+  return { x:(clientX - r.left)/sx, y:(clientY - r.top)/sx };
+}
+
+/* ============================================================
+   JUNGLE AUDIO (procedural — no external sound files)
+============================================================ */
+const Audio = (()=>{
+  let ac, master, on = true, bgm = null;
+
+  // looping background music (single HTMLAudio element)
+  let bgmStarting = false;
+  function startBgm(){
+    if(!bgm){
+      bgm = new window.Audio('audio/background-music.mp3');
+      bgm.loop = true;
+      bgm.volume = 0.12;          // sits gently under the SFX
+    }
+    // only start it if it isn't already playing/starting (prevents a double-play)
+    if(on && bgm.paused && !bgmStarting){
+      bgmStarting = true;
+      bgm.play().then(()=>{ bgmStarting = false; }).catch(()=>{ bgmStarting = false; });
+    }
+  }
+
+  function ensure(){
+    if(!ac){
+      ac = new (window.AudioContext||window.webkitAudioContext)();
+      master = ac.createGain();
+      master.gain.value = 0.9;
+      master.connect(ac.destination);
+    }
+    if(ac.state === 'suspended') ac.resume();
+  }
+
+  function env(node, t, a, d, peak){
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t+a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+a+d);
+    node.connect(g); g.connect(master);
+    return g;
+  }
+
+  // a single chirp = quick upward frequency sweep
+  function chirp(baseFreq=1800, t0=0, len=0.12, vol=0.18){
+    if(!on) return;
+    ensure();
+    const t = ac.currentTime + t0;
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(baseFreq, t);
+    o.frequency.exponentialRampToValueAtTime(baseFreq*1.5, t+len*0.5);
+    o.frequency.exponentialRampToValueAtTime(baseFreq*1.1, t+len);
+    env(o, t, 0.012, len, vol);
+    o.start(t); o.stop(t+len+0.05);
+  }
+
+  function pickup(){
+    if(!on) return; ensure();
+    const t = ac.currentTime;
+    const o = ac.createOscillator(); o.type='triangle';
+    o.frequency.setValueAtTime(420, t);
+    o.frequency.exponentialRampToValueAtTime(680, t+0.09);
+    env(o, t, 0.008, 0.10, 0.16);
+    o.start(t); o.stop(t+0.16);
+  }
+
+  // soft keyboard-style tick — one per character while dialogue types out.
+  // Stays silent (and never spins up the AudioContext) until audio is unlocked.
+  function type(){
+    if(!on || !ac || ac.state !== 'running') return;
+    const t = ac.currentTime;
+    const o = ac.createOscillator(); o.type='square';
+    o.frequency.setValueAtTime(1300 + Math.random()*500, t);   // tiny pitch jitter per letter
+    env(o, t, 0.003, 0.025, 0.045);                            // very short + quiet
+    o.start(t); o.stop(t+0.05);
+  }
+
+  function correct(){
+    if(!on) return; ensure();
+    const t = ac.currentTime;
+    [523, 659, 784].forEach((f,i)=>{          // C5 E5 G5 arpeggio
+      const o = ac.createOscillator(); o.type='triangle';
+      o.frequency.setValueAtTime(f, t+i*0.07);
+      env(o, t+i*0.07, 0.01, 0.18, 0.18);
+      o.start(t+i*0.07); o.stop(t+i*0.07+0.24);
+    });
+    chirp(2200, 0.18, 0.10, 0.10);            // happy little bird
+  }
+
+  function wrong(){
+    if(!on) return; ensure();
+    const t = ac.currentTime;
+    const o = ac.createOscillator(); o.type='sawtooth';
+    o.frequency.setValueAtTime(200, t);
+    o.frequency.exponentialRampToValueAtTime(110, t+0.25);
+    const f = ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=900;
+    o.connect(f);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.2,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+    f.connect(g); g.connect(master);
+    o.start(t); o.stop(t+0.32);
+  }
+
+  // friendly bee buzz — a wobbling sawtooth tone, then a cheery chirp
+  function buzz(){
+    if(!on) return; ensure();
+    const t = ac.currentTime;
+    const o = ac.createOscillator(); o.type='sawtooth';
+    const base = 175;
+    o.frequency.setValueAtTime(base, t);
+    for(let i=1;i<=9;i++) o.frequency.setValueAtTime(base + ((i%2) ? 55 : -25), t + i*0.032);  // wobble = buzz
+    const f = ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1100;
+    o.connect(f);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.34);
+    f.connect(g); g.connect(master);
+    o.start(t); o.stop(t+0.36);
+    chirp(2000, 0.30, 0.10, 0.11);                 // happy little squeak at the end
+  }
+
+  function fanfare(){
+    if(!on) return; ensure();
+    const t = ac.currentTime;
+    const notes = [523,659,784,1046, 784,1046];   // C E G C8 ...
+    notes.forEach((f,i)=>{
+      const o = ac.createOscillator(); o.type='triangle';
+      o.frequency.setValueAtTime(f, t+i*0.12);
+      env(o, t+i*0.12, 0.01, 0.30, 0.2);
+      o.start(t+i*0.12); o.stop(t+i*0.12+0.36);
+    });
+    for(let i=0;i<5;i++) chirp(1700+i*200, 0.5 + i*0.12, 0.09, 0.10);
+  }
+
+  function toggle(){
+    on = !on;
+    if(master) master.gain.value = on ? 0.9 : 0;
+    if(on) startBgm(); else if(bgm) bgm.pause();   // unmuting also starts music that never began
+    return on;
+  }
+
+  return { ensure, startBgm, pickup, type, correct, wrong, buzz, fanfare, toggle, isOn:()=>on };
+})();
+
+document.getElementById('btnSound').addEventListener('click', e=>{
+  const on = Audio.toggle();
+  e.currentTarget.textContent = on ? '🔊' : '🔇';
+});
+
+/* ============================================================
+   GAME ENGINE
+============================================================ */
+const catchLong  = document.getElementById('catchLong');
+const catchShort = document.getElementById('catchShort');
+const basketLong = document.getElementById('basketLong');
+const basketShort= document.getElementById('basketShort');
+const slots      = [catchLong, catchShort];      // drop regions (box interiors)
+const overlay    = document.getElementById('overlay');
+const ovTitle   = document.getElementById('ovTitle');
+const ovText    = document.getElementById('ovText');
+const ovBtn     = document.getElementById('ovBtn');
+const ovIcon    = document.getElementById('ovIcon');
+
+/* ---------- TYPEWRITER TEXT ---------- */
+let _twTimer = null;
+function stopTypeWriter(){ if(_twTimer){ clearInterval(_twTimer); _twTimer = null; } }
+function typeWriter(el, text, cps){
+  stopTypeWriter();
+  let i = 0;
+  const step = 1000 / (cps || 11);          // slower, more deliberate default pace
+  const render = n => { el.innerHTML = text.slice(0, n).replace(/\n/g, '<br>'); };
+  render(0);
+  _twTimer = setInterval(()=>{
+    const ch = text.charAt(i);              // the character being revealed this tick
+    render(++i);
+    if(ch && ch.trim()) Audio.type();       // soft tick on visible characters (not spaces)
+    if(i >= text.length){ clearInterval(_twTimer); _twTimer = null; }
+  }, step);
+}
+
+/* ---------- BEE INSTRUCTOR ---------- */
+const beeSprite = document.getElementById('beeSprite');
+const beeBubble = document.getElementById('beeBubble');
+/* the speech bubble is used ONLY by the tutorial (setBubble in runTutorial);
+   the main game shows no dialogue or text — just sounds, cheers and effects */
+function beeCheer(){
+  beeSprite.classList.remove('cheer'); void beeSprite.offsetWidth; beeSprite.classList.add('cheer');
+  setTimeout(()=>beeSprite.classList.remove('cheer'), 560);
+}
+// tap the bee → she buzzes, does a happy cheer, and pops a little sparkle
+beeSprite.addEventListener('click', ()=>{
+  Audio.ensure(); Audio.startBgm(); Audio.buzz();
+  beeCheer();
+  const r = beeSprite.getBoundingClientRect();
+  if(r.width){ const c = toStage(r.left + r.width/2, r.top + r.height*0.42); sparkleRing(c.x, c.y); }
+});
+
+let levelIdx = 0, total = 0, done = 0;
+let seed = 1234;                                   // deterministic jitter
+function rnd(){ seed = (seed*1103515245 + 12345) & 0x7fffffff; return seed/0x7fffffff; }
+
+function clearBoard(){
+  stopDragHint();
+  // confetti is left alone so it can keep fluttering down across the level change
+  document.querySelectorAll('.item, .spark, .ghost, .star').forEach(n=>n.remove());
+  catchLong.innerHTML=''; catchShort.innerHTML='';
+}
+
+/* ---------- NEST PILE (the source of all the materials) ---------- */
+const nestEl = document.getElementById('nest');
+function updatePile(i){
+  // the pile thins out as its materials get sorted, level by level —
+  // and on the LAST level it's fully used up, so it shrinks away completely
+  const last = (i === LEVELS.length - 1);
+  const p = i / (LEVELS.length - 1);                 // 0 (full) → 1 (nearly gone)
+  nestEl.style.transition = 'transform .8s ease, opacity .8s ease';
+  nestEl.style.transformOrigin = '50% 88%';          // sink toward the ground
+  nestEl.style.transform = last ? 'scale(0)' : `scale(${1 - 0.6*p})`;
+  nestEl.style.opacity   = last ? '0' : (1 - 0.3*p);
+}
+
+/* ---------- DRAG HINT (ghost twig demo) ---------- */
+let dragHintAnim = null, dragHintTimer = null, idleTimer = null, tutorialActive = false;
+const IDLE_MS = 11000;                         // re-show the hint after ~11s idle
+function stopDragHint(){
+  if(dragHintTimer){ clearTimeout(dragHintTimer); dragHintTimer=null; }
+  if(dragHintAnim){ dragHintAnim.cancel(); dragHintAnim=null; }
+  document.querySelectorAll('.ghost').forEach(n=>n.remove());
+}
+function armIdle(){ clearTimeout(idleTimer); idleTimer = setTimeout(idleFire, IDLE_MS); }
+function idleFire(){
+  // only nudge during active play (not on the intro, the tutorial, the finale
+  // overlay, or while the player is mid-drag)
+  if(!document.getElementById('intro') && !overlay.classList.contains('show')
+     && !tutorialActive && !document.querySelector('.item.dragging')
+     && document.querySelector('.item:not(.placed)')){
+    showDragHint();
+  }
+  idleTimer = setTimeout(idleFire, IDLE_MS);    // keep reminding while idle
+}
+function resetIdle(){ stopDragHint(); armIdle(); }   // any tap dismisses the hint + restarts the clock
+stage.addEventListener('pointerdown', resetIdle);    // count any interaction as activity
+// any first gesture unlocks audio (covers the auto-started intro, where no tap happened yet)
+stage.addEventListener('pointerdown', ()=>{ Audio.ensure(); Audio.startBgm(); });
+function showDragHint(){
+  stopDragHint();
+  const item = document.querySelector('.item:not(.placed)');
+  if(!item) return;
+  const cat  = item.dataset.cat;
+  const slot = cat==='long' ? catchLong : catchShort;
+  const r    = item.style.getPropertyValue('--r') || '0deg';   // match the item's tilt
+  const ix = parseFloat(item.style.left) + item.offsetWidth/2;
+  const iy = parseFloat(item.style.top)  + item.offsetHeight/2;
+  const sr = slot.getBoundingClientRect();
+  const sc = toStage(sr.left + sr.width/2, sr.top + sr.height*0.5);
+  const dx = sc.x - ix, dy = sc.y - iy;
+
+  const ghost = document.createElement('div');
+  ghost.className = 'ghost';
+  ghost.style.left = item.style.left;
+  ghost.style.top  = item.style.top;
+  ghost.style.width  = item.offsetWidth+'px';
+  ghost.style.height = item.offsetHeight+'px';
+  const img = document.createElement('img');
+  img.src = item.querySelector('img').src;   // match the demoed item's artwork
+  img.draggable = false;
+  ghost.appendChild(img);
+  stage.appendChild(ghost);
+
+  // slow demo at the start of the game — two unhurried loops, then stop
+  dragHintAnim = ghost.animate([
+    { transform:`translate(0,0) scale(1) rotate(${r})`,               opacity:0,   offset:0    },
+    { transform:`translate(0,0) scale(1.1) rotate(${r})`,             opacity:.6,  offset:0.12 },
+    { transform:`translate(${dx}px,${dy}px) scale(.72) rotate(${r})`, opacity:.6,  offset:0.62 },
+    { transform:`translate(${dx}px,${dy}px) scale(.62) rotate(${r})`, opacity:0,   offset:0.8  },
+    { transform:`translate(0,0) scale(1) rotate(${r})`,               opacity:0,   offset:1    },
+  ], { duration:2150, iterations:2, easing:'ease-in-out', fill:'forwards' });
+  dragHintAnim.onfinish = stopDragHint;
+}
+
+function makeItem(def){
+  const el = document.createElement('div');
+  el.className = 'item idle';
+  el.dataset.cat = def.cat;                        // 'long' | 'short' (which bin)
+  // per-level size (the same art appears at different lengths across levels);
+  // fall back to the SIZE table if a level omits the dimensions.
+  const base = SIZE[def.art] || {w:200, h:200};
+  const w = (def.w !== undefined) ? def.w : base.w;
+  const h = (def.h !== undefined) ? def.h : base.h;
+  el.style.width = w+'px'; el.style.height = h+'px';
+  const rot = (rnd()*6 - 3);                       // placeholder; loadLevel sets the real tilt
+  el.style.setProperty('--r', rot+'deg');
+  el.style.transform = `rotate(${rot}deg)`;
+  const img = document.createElement('img');
+  img.src = ART[def.art]; img.draggable = false; img.alt = def.art;
+  el.appendChild(img);
+  return {el, w, h, art:def.art, rot:def.rot};
+}
+
+function loadLevel(i, skipHint){
+  clearBoard();
+  overlay.classList.remove('show');
+  updatePile(i);                                     // the pile thins as levels progress
+  const defs = LEVELS[i];
+  total = defs.length; done = 0;
+
+  // Place the items in the open area above the stone boxes, laid out diagonally
+  // so they rest naturally. Tall pieces lie nearly flat (like the reference).
+  const items = defs.map(def => makeItem(def));      // {el,w,h}
+  items.forEach(it => stage.appendChild(it.el));
+
+  const n = items.length;
+  const IX0 = 805, IX1 = 1705, ITEM_CY = 255;        // item band: upper-right (centres x≈1030 / x≈1480), above the boxes (y408)
+  const cellW = (IX1 - IX0) / n;
+  // every piece flies OUT OF THE NEST PILE to its spot — the pile is the source
+  const nr = nestEl.getBoundingClientRect();
+  const nc = toStage(nr.left + nr.width/2, nr.top + nr.height*0.45);
+  items.forEach((it,j)=>{
+    const cx = IX0 + cellW*((n-1-j) + 0.5);          // short item on the left, long on the right
+    const cy = ITEM_CY;
+    const left = cx - it.w/2, top = cy - it.h/2;
+    it.el.style.left = left+'px'; it.el.style.top = top+'px';
+    it.el.dataset.homeX = left; it.el.dataset.homeY = top;
+    // pose: each level sets the item's tilt (`rot`) so the pieces lie nearly flat and
+    // their lengths read side-by-side; fall back to a lay-down rule if a level omits it.
+    const tall = (it.h / it.w) > 1.5;
+    const sign = (j % 2 === 0) ? -1 : 1;
+    const rot  = (it.rot !== undefined) ? it.rot : sign * (tall ? 68 : 22);
+    it.el.style.setProperty('--r', rot+'deg');
+    it.el.style.transform = `rotate(${rot}deg)`;
+    makeDraggable(it.el);
+    // launch from the pile: rise out, float along a gentle arc, settle softly
+    it.el.classList.remove('idle');
+    const dxp = nc.x - (left + it.w/2), dyp = nc.y - (top + it.h/2);
+    const dur = 1080, dl = j*240;
+    const a = it.el.animate([
+      {opacity:0, transform:`translate(${dxp}px,${dyp}px) scale(.2) rotate(${rot}deg)`},
+      {opacity:1, transform:`translate(${dxp*0.82}px,${dyp*0.82 - 60}px) scale(.45) rotate(${rot}deg)`, offset:.22},
+      {opacity:1, transform:`translate(${dxp*0.4}px,${dyp*0.4 - 110}px) scale(.75) rotate(${rot}deg)`, offset:.55},
+      {opacity:1, transform:`translate(0,0) scale(1.05) rotate(${rot}deg)`, offset:.85},
+      {opacity:1, transform:`translate(0,0) scale(1) rotate(${rot}deg)`}
+    ], {duration:dur, delay:dl, easing:'ease-in-out', fill:'backwards'});
+    a.onfinish = ()=>{ if(!it.el.classList.contains('dragging') && !it.el.classList.contains('placed')) it.el.classList.add('idle'); };
+    // sparkles: a puff as it leaves the pile + a ring as it lands
+    setTimeout(()=>sparkleRing(nc.x, nc.y - 30), dl + 60);
+    const sx = left + it.w/2, sy = top + it.h/2;
+    setTimeout(()=>sparkleRing(sx, sy), dl + dur*0.85);
+  });
+
+  // show the drag-and-drop demo on the first level only
+  if(i===0 && !skipHint) dragHintTimer = setTimeout(showDragHint, 950);
+
+  armIdle();   // start the inactivity timer (re-shows the hint if the player goes idle)
+}
+
+/* ---------- DRAGGING (pointer events) ---------- */
+function makeDraggable(el){
+  let startX, startY, origLeft, origTop, dragging=false;
+
+  el.addEventListener('pointerdown', e=>{
+    if(el.classList.contains('placed')) return;
+    if(el.classList.contains('locked')) return;   // tutorial gate — not draggable yet
+    stopDragHint();
+    Audio.ensure(); Audio.startBgm(); Audio.pickup();   // ensure music starts on first touch
+    dragging = true;
+    el.classList.remove('idle','wrong');
+    // if it was still snapping home, freeze it where it is so it doesn't lag behind the pointer
+    const cs = getComputedStyle(el);
+    const curL = cs.left, curT = cs.top;
+    el.style.transition = '';
+    el.style.left = curL; el.style.top = curT;
+    el.getAnimations().forEach(a=>a.cancel());   // stop the pop-in / leftover one-shot effects
+    el.classList.add('dragging');
+    el.style.transform = `rotate(${el.style.getPropertyValue('--r')})`;
+    el.setPointerCapture(e.pointerId);
+    origLeft = parseFloat(el.style.left); origTop = parseFloat(el.style.top);
+    const p = toStage(e.clientX, e.clientY);
+    startX = p.x; startY = p.y;
+    e.preventDefault();
+  });
+
+  el.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const p = toStage(e.clientX, e.clientY);
+    el.style.left = (origLeft + p.x - startX)+'px';
+    el.style.top  = (origTop  + p.y - startY)+'px';
+    const over = slotUnder(e.clientX, e.clientY);
+    basketLong.classList.remove('glow-ok');
+    basketShort.classList.remove('glow-ok');
+    // only the positive lift when hovering the CORRECT box — never a red "wrong" glow
+    if(over && over.dataset.cat===el.dataset.cat) bin(over).classList.add('glow-ok');
+  });
+
+  function end(e){
+    if(!dragging) return; dragging=false;
+    el.classList.remove('dragging');
+    basketLong.classList.remove('glow-ok');
+    basketShort.classList.remove('glow-ok');
+    const over = slotUnder(e.clientX, e.clientY);
+    if(over){
+      if(over.dataset.cat === el.dataset.cat) place(el, over);
+      else wrong(el, over);
+    } else snapHome(el);
+  }
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+}
+
+function slotUnder(clientX, clientY){
+  for(const s of slots){
+    const r = s.getBoundingClientRect();
+    if(clientX>=r.left && clientX<=r.right && clientY>=r.top && clientY<=r.bottom) return s;
+  }
+  return null;
+}
+
+function snapHome(el){
+  el.style.transition = 'left .32s cubic-bezier(.3,1.4,.5,1), top .32s cubic-bezier(.3,1.4,.5,1)';
+  el.style.left = el.dataset.homeX+'px';
+  el.style.top  = el.dataset.homeY+'px';
+  setTimeout(()=>{
+    if(el.classList.contains('dragging')) return;   // re-grabbed mid-snap: leave it alone
+    el.style.transition=''; el.classList.add('idle');
+  }, 350);
+}
+
+function bin(slot){ return slot===catchLong ? basketLong : basketShort; }
+
+function wrong(el, slot){
+  Audio.wrong();
+  const b = bin(slot);
+  b.classList.add('flash-bad');
+  el.classList.add('wrong');
+  setTimeout(()=>{ b.classList.remove('flash-bad'); el.classList.remove('wrong'); }, 460);
+  snapHome(el);
+}
+
+function place(el, slot){
+  Audio.correct();
+  const b = bin(slot);
+  b.classList.add('flash-good');
+  setTimeout(()=>b.classList.remove('flash-good'), 510);
+  burst(slot);
+  el.classList.remove('idle','dragging');
+  el.classList.add('placed');                 // hints & idle-nudge selectors skip it now
+  el.style.pointerEvents = 'none';
+  // animate the piece dropping into the basket, then remove it (it's "in" the basket)
+  const cr = slot.getBoundingClientRect();
+  const c  = toStage(cr.left + cr.width/2, cr.top + cr.height*0.5);
+  const cx = parseFloat(el.style.left) + el.offsetWidth/2;
+  const cy = parseFloat(el.style.top)  + el.offsetHeight/2;
+  const dx = c.x - cx, dy = c.y - cy;
+  const r  = el.style.getPropertyValue('--r') || '0deg';
+  const a = el.animate([
+    {transform:`translate(0,0) scale(1) rotate(${r})`,            opacity:1},
+    {transform:`translate(${dx*0.6}px,${dy*0.6}px) scale(.7) rotate(${r})`, opacity:1, offset:.6},
+    {transform:`translate(${dx}px,${dy}px) scale(.25) rotate(${r})`,        opacity:0}
+  ], {duration:430, easing:'cubic-bezier(.4,.05,.6,1)', fill:'forwards'});
+  a.onfinish = ()=> el.remove();
+  done++;
+  stage.dispatchEvent(new CustomEvent('itemplaced', {detail:{cat: el.dataset.cat}}));   // the tutorial listens
+  if(done===total) setTimeout(levelComplete, 510);
+}
+
+/* glowing stars rising out of the basket on a correct drop */
+function burst(slot){
+  const r = slot.getBoundingClientRect();
+  const c = toStage(r.left + r.width/2, r.top + r.height*0.35);
+  const N = 11;
+  for(let i=0;i<N;i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.textContent = '★';
+    s.style.left = c.x+'px'; s.style.top = c.y+'px';
+    s.style.fontSize = (32 + rnd()*30)+'px';
+    stage.appendChild(s);
+    // fan upward and out of the basket
+    const ang  = (-160 + (i/(N-1))*140) * Math.PI/180;
+    const dist = 150 + rnd()*170;
+    const dx = Math.cos(ang)*dist;
+    const dy = Math.sin(ang)*dist - 60;          // bias upward ("going up")
+    const rot = (rnd()*2-1)*240;
+    s.animate([
+      {transform:'translate(0,0) scale(.3) rotate(0deg)', opacity:0},
+      {transform:`translate(${dx*0.32}px,${dy*0.32}px) scale(1.35) rotate(${rot*0.35}deg)`, opacity:1, offset:.18},
+      {transform:`translate(${dx*0.78}px,${dy*0.78}px) scale(1.1) rotate(${rot*0.78}deg)`, opacity:1, offset:.72},
+      {transform:`translate(${dx}px,${dy}px) scale(.7) rotate(${rot}deg)`, opacity:0}
+    ], {duration:860 + rnd()*220, easing:'cubic-bezier(.25,.7,.35,1)', fill:'forwards'}).onfinish = ()=>s.remove();
+  }
+}
+
+/* small sparkle ring around a point (used when an item appears) */
+function sparkleRing(x, y){
+  for(let i=0;i<7;i++){
+    const s = document.createElement('div');
+    s.className = 'star'; s.textContent = '✦';
+    s.style.left = x+'px'; s.style.top = y+'px';
+    s.style.fontSize = (15 + rnd()*16)+'px';
+    stage.appendChild(s);
+    const ang = (i/7)*Math.PI*2, dist = 45 + rnd()*45;
+    const dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist;
+    s.animate([
+      {transform:'translate(0,0) scale(.2)', opacity:0},
+      {transform:`translate(${dx}px,${dy}px) scale(1)`, opacity:1, offset:.4},
+      {transform:`translate(${dx*1.3}px,${dy*1.3}px) scale(.3)`, opacity:0}
+    ], {duration:560, easing:'ease-out', fill:'forwards'}).onfinish = ()=>s.remove();
+  }
+}
+
+/* ---------- LEVEL COMPLETE ---------- */
+function levelComplete(){
+  Audio.fanfare();
+  spawnCelebration();
+  beeCheer();
+  if(levelIdx === LEVELS.length-1){
+    // final level — honeycomb gate into the celebratory finale screen
+    setTimeout(showFinale, 1400);          // let the leaf confetti burst first
+  } else if(levelIdx === 0){
+    // PART 1 (tutorial) finished — the instructor bee flies off the RIGHT of the
+    // screen, then the full-screen "Now, it is your turn!" hand-off scene appears
+    setTimeout(()=>flyInstructorAway(showHandoff), 1200);   // let the confetti burst first
+  } else {
+    // both correct — confetti pops, then the next level's items fly in
+    // (the confetti keeps fluttering down over the transition)
+    const next = levelIdx + 1;
+    setTimeout(()=>{ levelIdx = next; loadLevel(next); }, 1600);
+  }
+}
+
+// Celebration = confetti cannons: pieces fire up + inward from the lower corners
+// (plus a centre pop), arc over, then tumble down past the bottom — varied shapes,
+// sizes and bright colours, spinning and flipping as they fall.
+// leaf confetti — uses the game's leaf artwork
+const LEAF_CONFETTI = [ART.leaf, ART.longleaf];
+function spawnCelebration(){
+  fireConfetti(150, 1020,  1, 40);    // bottom-left burst → up-right
+  fireConfetti(1770, 1020, -1, 40);   // bottom-right burst → up-left
+  setTimeout(()=>fireConfetti(960, 980, 0, 30), 130);   // centre pop
+}
+function fireConfetti(x, y, dir, count){
+  for(let i=0;i<count;i++){
+    const c = document.createElement('img'); c.className = 'confetti';
+    c.src = LEAF_CONFETTI[Math.floor(rnd()*LEAF_CONFETTI.length)];
+    c.draggable = false;
+    const w = 26 + rnd()*22;                                  // leaf size
+    c.style.width = w+'px'; c.style.height = 'auto';
+    c.style.left = x+'px'; c.style.top = y+'px';
+    stage.appendChild(c);
+    // launch up-and-inward, then gravity carries it down past the bottom
+    const spread = (dir === 0) ? (rnd()*2-1) : dir*(0.25 + rnd()*0.95);
+    const vx = spread * (300 + rnd()*540);
+    const vy = -(720 + rnd()*560);
+    const apexX = vx*0.55, endX = vx*1.15 + dir*rnd()*120, endY = 1200;
+    const rz = (rnd()*2-1)*720, rx = 360 + rnd()*900;     // spin + flip
+    const dur = 1900 + rnd()*900;
+    c.animate([
+      {transform:'translate(0,0) rotate(0deg) rotateX(0deg)', opacity:1,
+        easing:'cubic-bezier(.15,.7,.45,1)'},                                   // rise (decelerate)
+      {transform:`translate(${apexX}px,${vy}px) rotate(${rz*0.4}deg) rotateX(${rx*0.4}deg)`,
+        opacity:1, offset:.36, easing:'cubic-bezier(.55,0,.85,1)'},             // apex → fall (accelerate)
+      {transform:`translate(${endX}px,${endY}px) rotate(${rz}deg) rotateX(${rx}deg)`, opacity:0}
+    ], {duration:dur, fill:'forwards'}).onfinish = ()=>c.remove();
+  }
+}
+
+ovBtn.addEventListener('click', ()=>{
+  overlay.classList.remove('show');
+  const next = (levelIdx === LEVELS.length-1) ? 0 : levelIdx+1;
+  // restart: the level's items just pop in automatically
+  levelIdx = next; loadLevel(levelIdx);
+});
+
+/* ---------- INTRO SCREEN → bee flies out → gameplay ---------- */
+const intro = document.getElementById('intro');
+let gameStarted = false;
+
+function startGame(){
+  if(gameStarted) return; gameStarted = true;
+  clearTimeout(introTimer);
+  Audio.ensure(); Audio.startBgm();             // first gesture / autoplay
+
+  const beeImg = intro.querySelector('.intro-bee');
+  const box    = intro.querySelector('.intro-box');
+  // the dialogue box drops away — clear the pop-in animation first (its fill:both
+  // keeps opacity:1 and would otherwise override the fade-out below)
+  if(box){ box.style.animation='none'; box.style.transition='opacity .3s, transform .3s'; box.style.opacity='0'; box.style.transform='scale(.85)'; }
+
+  // swap the standing bee for the flying bee and zoom her off the screen
+  if(beeImg) beeImg.style.opacity='0';
+  const fly = document.createElement('img');
+  fly.className = 'intro-fly';
+  fly.src = 'assets/bee-flying.webp';
+  intro.appendChild(fly);
+  // smooth, continuous zig-zag flight that weaves up/down then leaves the screen.
+  // (the flying-bee art already faces right — flipping it made her fly backwards)
+  // The time offsets are spaced to match the distance of each leg, so the bee
+  // holds a steady speed through the weave instead of crawling then lurching;
+  // a single ease-in curve then lets her accelerate gracefully off-screen.
+  // Quick + smooth: one clean upward arc (a single mid-point, no zig-zag) that
+  // accelerates off the top-right. A short flight has no time for a multi-weave
+  // path without looking jerky, so this keeps it to a single smooth curve.
+  const a = fly.animate([
+    {transform:'translate(0,0) rotate(-4deg) scale(1)',             offset:0},
+    {transform:'translate(640px,-180px) rotate(9deg) scale(.92)',   offset:.5},    // smooth rise
+    {transform:'translate(2320px,-680px) rotate(18deg) scale(.45)', offset:1}      // off top-right
+  ], {duration:1400, easing:'cubic-bezier(.45,0,.85,1)', fill:'forwards'});         // accelerate off (no snap-back)
+
+  // once she's gone, play the amazing entry transition
+  a.onfinish = ()=>{
+    intro.classList.add('out');
+    setTimeout(()=>intro.remove(), 300);
+    enterGame();
+  };
+}
+
+/* ---------- HONEYCOMB CELL TRANSITION ---------- */
+// A grid of honeycomb cells (transition-bee-comb.svg, a single flat-top hexagon)
+// pops in from the centre outward to cover the screen; the game loads behind them
+// (onCovered); then the cells dissolve centre→out to reveal it. Full-viewport.
+function honeycombGate(onCovered, onDone){
+  const wrap = document.createElement('div'); wrap.id = 'honeycomb';
+  document.body.appendChild(wrap);
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const Wd = Math.ceil(Math.max(vw, vh) / 8);   // hex display width
+  const Hd = Wd * 0.867;                          // regular flat-top hex height (√3/2)
+  const colStep = Wd * 0.75, rowStep = Hd, cx = vw/2, cy = vh/2;
+  const cells = []; let maxDist = 1;
+  for(let col=-1; col*colStep - Wd/2 < vw + Wd; col++){
+    for(let row=-1; row*rowStep - Hd/2 < vh + Hd; row++){
+      const ccx = col*colStep;
+      const ccy = row*rowStep + ((col & 1) ? Hd/2 : 0);   // odd columns drop by half a hex
+      const hex = document.createElement('img');
+      hex.className = 'hexcell';
+      hex.src = 'assets/transition-bee-comb.svg';
+      hex.style.left = (ccx - Wd/2)+'px'; hex.style.top = (ccy - Hd/2)+'px';
+      hex.style.width = Wd+'px'; hex.style.height = Hd+'px';
+      const dist = Math.hypot(ccx - cx, ccy - cy);
+      maxDist = Math.max(maxDist, dist);
+      wrap.appendChild(hex);
+      cells.push({ hex, dist });
+    }
+  }
+  const CLOSE = 600, CLOSE_STAGGER = 820, HOLD = 220, OPEN = 620, OPEN_STAGGER = 880;
+  // CLOSE — cells pop in centre→out (slight overshoot + 1.06 overlap to hide seams)
+  cells.forEach(c=>{
+    const d = c.dist / maxDist;
+    c.hex.animate(
+      [{transform:'scale(0)', opacity:0}, {transform:'scale(1.06)', opacity:1}],
+      {duration:CLOSE, delay: d*CLOSE_STAGGER, easing:'cubic-bezier(.3,1.3,.5,1)', fill:'both'});
+  });
+  setTimeout(()=>{
+    if(onCovered) onCovered();                         // swap to gameplay while fully covered
+    // OPEN — cells shrink/spin away centre→out + the honey backing fades, revealing the game
+    cells.forEach(c=>{
+      const d = c.dist / maxDist;
+      c.hex.animate(
+        [{transform:'scale(1.06)', opacity:1}, {transform:'scale(0) rotate(40deg)', opacity:0}],
+        {duration:OPEN, delay: d*OPEN_STAGGER, easing:'cubic-bezier(.4,0,.6,1)', fill:'forwards'});
+    });
+    wrap.animate([{opacity:1},{opacity:0}],
+      {duration:OPEN + OPEN_STAGGER, easing:'cubic-bezier(.5,0,.7,1)', fill:'forwards'});
+    setTimeout(()=>{ wrap.remove(); if(onDone) onDone(); }, OPEN + OPEN_STAGGER + 90);
+  }, CLOSE + CLOSE_STAGGER + HOLD);
+}
+
+function enterGame(){
+  // honeycomb gate closes over the screen revealing the empty board behind it;
+  // only once it has fully opened do the twigs fly out of the pile (in view),
+  // and the guided tutorial starts after they have landed.
+  honeycombGate(
+    ()=>{ stage.classList.remove('intro-mode'); },
+    ()=>{
+      loadLevel(0, true);                  // skip the auto drag-hint
+      // locked until the bee finishes each instruction (she unlocks one piece at a time)
+      document.querySelectorAll('.item').forEach(it=>it.classList.add('locked'));
+      setTimeout(runTutorial, 1480);       // both twigs have settled by now
+    }
+  );
+}
+
+/* ---------- PART 1: GUIDED TUTORIAL (level 1) ----------
+   The player does ALL the sorting themselves — nothing is auto-played and there
+   are no guide arrows. For each piece in turn the bee glows it, pulses its box,
+   says where it goes, and loops the ghost drag animation as a hint until the
+   player drags it in:
+     "Long items go here." → "Short items go here." → hand-off scene (bee flies in,
+     then "Now, it is your turn!" — showHandoff) → gate → PART 2. */
+function runTutorial(){
+  tutorialActive = true;
+  let timer = null, done = false;
+
+  function setBubble(msg){
+    beeBubble.classList.add('show');       // fixed-size bubble (CSS) — text wraps inside the cream area
+    beeBubble.classList.remove('pop'); void beeBubble.offsetWidth; beeBubble.classList.add('pop');
+    setTimeout(()=>beeBubble.classList.remove('pop'), 220);
+    typeWriter(beeBubble, msg);            // type the message out character-by-character
+  }
+  function clearTargets(){
+    basketLong.classList.remove('hint'); basketShort.classList.remove('hint');
+    document.querySelectorAll('.item.tut-target').forEach(n=>n.classList.remove('tut-target'));
+  }
+  // lock/unlock dragging on the pieces still on the board
+  function lockItems(on){
+    document.querySelectorAll('.item:not(.placed)').forEach(it=>it.classList.toggle('locked', on));
+  }
+  function finish(){
+    if(done) return; done = true;
+    tutorialActive = false;
+    clearTimeout(timer);
+    stopTypeWriter();                      // a half-typed message must not overwrite later bubbles
+    stopDragHint();
+    clearTargets();
+    lockItems(false);                      // free every remaining piece for normal play
+    beeBubble.classList.remove('show');
+    stage.removeEventListener('itemplaced', onPlaced);
+    armIdle();                             // part 2 (free play) uses the normal idle nudge
+  }
+
+  // Point at the current piece — glow it, pulse its box, name it. While she's
+  // giving the instruction every piece is locked; once it finishes typing, ONLY
+  // the named piece (long, then short) becomes draggable and the ghost hint starts.
+  function guideNext(){
+    if(done) return;
+    clearTimeout(timer);
+    clearTargets();
+    const item = document.querySelector('.item:not(.placed)');
+    if(!item){ finish(); return; }
+    const isLong = item.dataset.cat === 'long';
+    lockItems(true);                       // lock all while she instructs
+    item.classList.add('tut-target');
+    (isLong ? basketLong : basketShort).classList.add('hint');
+    const msg = isLong ? 'Long items\ngo here.' : 'Short items\ngo here.';
+    setBubble(msg);
+    const typeMs = msg.length * (1000 / 11) + 250;   // typeWriter default ≈ 11 cps
+    timer = setTimeout(()=>{                // instruction done → unlock just this piece + hint
+      if(done) return;
+      item.classList.remove('locked');
+      replayHint();
+    }, typeMs);
+  }
+  // Loop the ghost drag animation as a hint until the player grabs (or sorts) the
+  // piece. showDragHint() runs two ghost loops (~4.4s) then stops, so we re-arm.
+  function replayHint(){
+    if(done) return;
+    const item = document.querySelector('.item:not(.placed)');
+    if(!item) return;
+    if(item.classList.contains('dragging')){     // player took over — pause the demo
+      timer = setTimeout(replayHint, 1600);
+      return;
+    }
+    showDragHint();
+    timer = setTimeout(replayHint, 7000);        // two loops + a short breather, then replay
+  }
+  function onPlaced(){
+    clearTimeout(timer);
+    stopDragHint();
+    if(document.querySelector('.item:not(.placed)')) timer = setTimeout(guideNext, 950);
+    else finish();                         // both placed — the hand-off screen takes it from here
+  }
+  stage.addEventListener('itemplaced', onPlaced);
+  beeCheer();
+  guideNext();
+}
+
+/* The instructor bee (top-left of the play area) flies off and exits the RIGHT side
+   of the screen; when she's gone, `done()` runs (→ the full-screen hand-off scene). */
+function flyInstructorAway(done){
+  beeBubble.classList.remove('show','pop');         // drop any leftover tutorial bubble
+  const beeWrap = beeSprite.parentElement;          // #bee
+  const fly = document.createElement('img');
+  fly.src = 'assets/bee-flying.webp'; fly.alt = '';
+  fly.style.cssText = 'position:absolute;left:0;top:0;width:300px;height:320px;'
+    + 'object-fit:contain;z-index:24;pointer-events:none;'
+    + 'filter:drop-shadow(0 12px 14px rgba(40,30,0,.3));will-change:transform,opacity;';
+  beeSprite.style.visibility = 'hidden';            // hide the standing pose during the flight
+  beeWrap.appendChild(fly);
+  Audio.buzz();
+  // zip across and off the RIGHT edge (she already faces right → flies forward)
+  fly.animate([
+    {transform:'translate(0,0) rotate(0deg) scale(1)',              opacity:1},
+    {transform:'translate(780px,-90px) rotate(6deg) scale(.92)',    opacity:1, offset:.5},
+    {transform:'translate(1980px,-220px) rotate(12deg) scale(.6)',  opacity:0}
+  ], {duration:560, easing:'cubic-bezier(.45,0,.9,1)', fill:'forwards'}).onfinish = ()=>{
+    fly.remove();
+    beeSprite.style.visibility = '';                // restored (hidden behind the hand-off until level 2)
+    done();
+  };
+}
+
+/* ---------- TUTORIAL → GAME HAND-OFF (full-screen scene, design slide 63) ----------
+   The flying bee flies IN from off the left and settles centre-left; the speech
+   bubble pops in and the "Now, it is your turn!" text types out; THEN she FLIES
+   AWAY off the right; THEN the honeycomb gate transitions into PART 2 (level 2). */
+function showHandoff(){
+  const h = document.createElement('div'); h.id = 'handoff';
+  h.innerHTML = `<img class="handoff-bee" src="assets/bee-flying.webp" alt="Queen bee">
+    <div class="handoff-box"><div class="handoff-text"></div></div>`;
+  stage.appendChild(h);
+  h.animate([{opacity:0},{opacity:1}], {duration:300, easing:'ease', fill:'forwards'});  // smooth cut from the board
+  const bee = h.querySelector('.handoff-bee');
+  const box = h.querySelector('.handoff-box');
+  const txt = h.querySelector('.handoff-text');
+
+  let leaving = false, autoT = null;
+  // after she's spoken: the bubble pops away, she FLIES OFF to the right, and only
+  // then does the honeycomb gate transition into level 2.
+  function leave(){
+    if(leaving) return; leaving = true;
+    clearTimeout(autoT);
+    box.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.7)'}],
+      {duration:240, easing:'ease', fill:'forwards'});
+    Audio.buzz();
+    bee.animate([
+      {transform:'translate(0,0) rotate(0deg) scale(1)',              opacity:1},
+      {transform:'translate(700px,-150px) rotate(10deg) scale(.85)',  opacity:1, offset:.5},
+      {transform:'translate(1760px,-560px) rotate(20deg) scale(.42)', opacity:0}
+    ], {duration:720, easing:'cubic-bezier(.5,0,.88,1)', fill:'forwards'}).onfinish = ()=>{
+      h.classList.add('out');
+      setTimeout(()=>h.remove(), 320);
+      // load level 2 only after the gate has covered the screen (items fly out in view)
+      honeycombGate(null, ()=>{ levelIdx = 1; loadLevel(1); });
+    };
+  }
+
+  // 1) the bee FLIES IN from off-screen left, settling into her spot (facing right)
+  Audio.buzz();
+  bee.animate([
+    {transform:'translate(-980px,240px) rotate(-12deg) scale(.5)', opacity:0},
+    {transform:'translate(-260px,70px)  rotate(-4deg) scale(.92)', opacity:1, offset:.55},
+    {transform:'translate(0,0) rotate(0deg) scale(1)',             opacity:1}
+  ], {duration:720, easing:'cubic-bezier(.25,.75,.35,1)', fill:'forwards'}).onfinish = ()=>{
+    // 2) the dialogue box appears, 3) then the text types out
+    box.classList.add('show');
+    const msg = 'Now, it is\nyour turn!';
+    setTimeout(()=>typeWriter(txt, msg, 11), 300);
+    const speakMs = 300 + msg.length*(1000/11) + 1300;   // appear + typing + a beat, then she leaves
+    autoT = setTimeout(leave, speakMs);
+    h.addEventListener('click', leave);                   // tap to skip ahead
+  };
+}
+
+/* ---------- FINALE (after the last level) ----------
+   Honeycomb gate covers the screen and the finale scene (last-screen.webp) is
+   built behind it. When the gate opens, the bee FLIES IN from off-screen, lands
+   (swaps to her standing pose), says "Now, that is some great sorting!", and a
+   Play Again button appears. */
+function showFinale(){
+  let f, fly, bee, box, txt, btn;
+  honeycombGate(
+    ()=>{   // covered — build the finale scene behind the gate
+      f = document.createElement('div'); f.id = 'finale';
+      f.innerHTML =
+        `<img class="finale-fly" src="assets/bee-flying.webp" alt="">
+         <img class="finale-bee" src="assets/bee-1.webp" alt="Queen bee">
+         <div class="finale-box"><div class="finale-text"></div></div>
+         <img class="finale-again" src="assets/play-again.svg" alt="Play again">`;
+      stage.appendChild(f);
+      fly = f.querySelector('.finale-fly');
+      bee = f.querySelector('.finale-bee');
+      box = f.querySelector('.finale-box');
+      txt = f.querySelector('.finale-text');
+      btn = f.querySelector('.finale-again');
+      fly.style.transform = 'translate(-720px,-260px) scale(.7)';   // start off-screen (no flash)
+      // Play Again → gate back to a fresh game (level 0)
+      btn.addEventListener('click', ()=>{
+        if(btn.dataset.clicked) return; btn.dataset.clicked = '1';
+        Audio.buzz();
+        honeycombGate(()=>{ f.remove(); levelIdx = 0; loadLevel(0); });
+      });
+    },
+    ()=>{   // gate opened — fly the bee in, then she speaks, then Play Again appears
+      const a = fly.animate([
+        {transform:'translate(-720px,-260px) rotate(-14deg) scale(.7)', opacity:0,  offset:0},
+        {transform:'translate(-260px,-70px) rotate(-6deg) scale(.92)',  opacity:1,  offset:.45},
+        {transform:'translate(0,0) rotate(0deg) scale(1)',              opacity:1,  offset:1}
+      ], {duration:1000, easing:'cubic-bezier(.3,.7,.3,1)', fill:'forwards'});
+      Audio.buzz();
+      a.onfinish = ()=>{
+        fly.style.display = 'none';            // hand off to the standing bee
+        bee.classList.add('show');
+        beeCheer();
+        setTimeout(()=>{                        // …then she speaks
+          box.classList.add('show');
+          typeWriter(txt, 'Now, that is some\ngreat sorting!', 13);
+        }, 300);
+        setTimeout(()=>btn.classList.add('show'), 1300);   // Play Again appears
+      };
+    }
+  );
+}
+
+// tap anywhere to start; a fallback auto-starts if the player doesn't tap
+intro.addEventListener('click', startGame);
+let introTimer = null;   // (auto-start now gated behind the cover's Play button)
+
+/* ---------- TITLE / COVER SCREEN → Play → intro fly-out ---------- */
+const cover = document.getElementById('cover');
+let coverDismissed = false;
+function enterFromCover(){
+  if(coverDismissed) return; coverDismissed = true;
+  Audio.ensure(); Audio.startBgm();          // first gesture unlocks audio
+  cover.classList.add('out');                // fade the title out…
+  setTimeout(()=>{
+    cover.remove();
+    // play the greeting on the splash; once it finishes, wait 2s, then the bee
+    // flies out (startGame also fades the dialogue away).
+    const introText = intro.querySelector('.intro-text');
+    const msg = 'Let us start\nsorting!', cps = 12;
+    typeWriter(introText, msg, cps);
+    const typeMs = (msg.length + 1) * (1000 / cps);
+    setTimeout(startGame, typeMs + 2000);    // dialogue ends → +2s → bee leaves
+  }, 320);
+}
+cover.addEventListener('click', enterFromCover);   // tap the button (or anywhere) to begin
+
+/* ---------- AMBIENT: falling leaves ---------- */
+function spawnLeaf(){
+  if(document.querySelectorAll('.fleaf').length > 7) return;
+  const leaf = document.createElement('img');
+  leaf.className = 'fleaf';
+  leaf.src = Math.random()<0.5 ? ART.leaf : ART.longleaf;
+  const size = 30 + Math.random()*40;
+  leaf.style.width = size+'px'; leaf.style.height='auto';
+  leaf.style.left = (Math.random()*1920)+'px';
+  leaf.style.top  = '-90px';
+  stage.appendChild(leaf);
+  const dx = (Math.random()*2-1)*180, sway = 70+Math.random()*70;
+  const rot = (Math.random()*2-1)*420, dur = 8000+Math.random()*5000;
+  const a = leaf.animate([
+    {transform:'translate(0,0) rotate(0deg)', opacity:0},
+    {opacity:.55, offset:.1},
+    {transform:`translate(${dx-sway}px,440px) rotate(${rot*0.45}deg)`, opacity:.55, offset:.5},
+    {transform:`translate(${dx+sway}px,860px) rotate(${rot*0.75}deg)`, opacity:.5,  offset:.8},
+    {transform:`translate(${dx}px,1200px) rotate(${rot}deg)`, opacity:0}
+  ], {duration:dur, easing:'ease-in-out', fill:'forwards'});
+  a.onfinish = ()=>leaf.remove();
+}
+
+/* ---------- AMBIENT: floating air motes ---------- */
+function spawnMote(){
+  if(document.querySelectorAll('.amote').length > 14) return;
+  const m = document.createElement('div');
+  m.className = 'amote';
+  const size = 6 + Math.random()*11;
+  m.style.width = m.style.height = size+'px';
+  m.style.left = (Math.random()*1920)+'px';
+  m.style.top  = (640 + Math.random()*420)+'px';
+  stage.appendChild(m);
+  const dx = (Math.random()*2-1)*180, dy = -(320+Math.random()*520), dur = 6000+Math.random()*4500;
+  const a = m.animate([
+    {transform:'translate(0,0)',        opacity:0},
+    {opacity:.7, offset:.2},
+    {transform:`translate(${dx*0.5}px,${dy*0.5}px)`, opacity:.7, offset:.6},
+    {transform:`translate(${dx}px,${dy}px)`, opacity:0}
+  ], {duration:dur, easing:'ease-in-out', fill:'forwards'});
+  a.onfinish = ()=>m.remove();
+}
+
+/* The pointer over items is now the custom hand cursor (see CSS) — the old
+   top-down bee cursor + instructor→cursor morph have been removed. */
+
+/* ---------- BOOT ---------- */
+// preload art that appears later so nothing pops in blank the first time
+['assets/bee-flying.webp', 'assets/dialogue-box.svg', 'assets/cursor-pointer.svg',
+ 'assets/transition-bee-comb.svg', 'assets/last-screen.webp', 'assets/play-again.svg', ...Object.values(ART)]
+  .forEach(src=>{ const im = new Image(); im.src = src; });
+stage.classList.add('intro-mode');  // hide the gameplay UI until the entry animation
+// (the splash greeting is typed by enterFromCover once the cover is dismissed — see above)
+for(let i=0;i<3;i++) spawnLeaf();
+for(let i=0;i<8;i++) spawnMote();
+setInterval(spawnLeaf, 1900);
+setInterval(spawnMote, 750);
+</script>
+<!-- QA comment tool — only activates with ?qa=true in the URL -->
+<script type="module" src="qa/qa-mode.js"></script>
+</body>
+</html>
