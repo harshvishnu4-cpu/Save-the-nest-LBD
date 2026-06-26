@@ -408,9 +408,9 @@ const LEVELS = [
   // L4 — long twig vs short twig — LESS difference
   [ {art:'long',  cat:'long',  w:180, h:420, rot:-90},
     {art:'short', cat:'short', w:300, h:300, rot:-78} ],
-  // L5 — long twig vs short leaf (leaf kept small)
+  // L5 — long twig vs short leaf (leaf pinned to the exact size/spot from the design)
   [ {art:'long', cat:'long',  w:174, h:405, rot:-90},
-    {art:'leaf', cat:'short', w:235, h:235, rot:-80} ],
+    {art:'leaf', cat:'short', w:162, h:162, rot:-80, left:912.5, top:192.5} ],
 ];
 
 /* ============================================================
@@ -736,7 +736,7 @@ function makeItem(def){
   const img = document.createElement('img');
   img.src = ART[def.art]; img.draggable = false; img.alt = def.art;
   el.appendChild(img);
-  return {el, w, h, art:def.art, rot:def.rot};
+  return {el, w, h, art:def.art, rot:def.rot, left:def.left, top:def.top};
 }
 
 function loadLevel(i, skipHint){
@@ -760,7 +760,9 @@ function loadLevel(i, skipHint){
   items.forEach((it,j)=>{
     const cx = IX0 + cellW*((n-1-j) + 0.5);          // short item on the left, long on the right
     const cy = ITEM_CY;
-    const left = cx - it.w/2, top = cy - it.h/2;
+    // a level may pin an item's exact spot (left/top); otherwise centre it in its cell
+    const left = (it.left !== undefined) ? it.left : cx - it.w/2;
+    const top  = (it.top  !== undefined) ? it.top  : cy - it.h/2;
     it.el.style.left = left+'px'; it.el.style.top = top+'px';
     it.el.dataset.homeX = left; it.el.dataset.homeY = top;
     // pose: each level sets the item's tilt (`rot`) so the pieces lie nearly flat and
