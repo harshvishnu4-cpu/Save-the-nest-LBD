@@ -99,7 +99,7 @@ friendly queen-bee mascot.
 |--------------------|----------|
 | Bee instructor `#bee` | top-left (`left:185 top:40`), faces right, hover-bobs; **tapping her plays a bee buzz (`Audio.buzz`) + a cheer + a sparkle ring**. Speech bubble appears **only during the tutorial** (typewriter text via `setBubble`) — the main game has no dialogue/text, just cheers, sounds and effects |
 | Nest pile `#nest` (`pile.webp`) | bottom-left (`left:-15 top:480`, 590px wide, `pointer-events:none`) — the **source of all materials**: every level's items fly out of it to the band, and it **thins out each level** (`updatePile`: scales 1→0.4 + fades toward the ground; on the **last level it shrinks away completely** — pile fully used up). Resets on Play Again |
-| Items (2 per level) | upper-right band, **short item on the LEFT, long on the RIGHT** (`IX0=805, IX1=1705, ITEM_CY=255` → centres x≈1030 / x≈1480). Each item's **size + tilt is set per-level** in `LEVELS` (`w/h/rot`); pieces lie **nearly flat** (`rot` ≈ −66°…−90°) so the two lengths read side-by-side |
+| Items (2 per level) | upper-right band (`IX0=805, IX1=1705, ITEM_CY=255` → centres x≈1030 / x≈1480). **Sides are randomised in the game levels** (`flip = (i!==0) && Math.random()<0.5`) so the long/short piece isn't always the same side — the **tutorial (level 0) keeps its fixed layout** (short left, long right). Each item's **size + tilt is set per-level** in `LEVELS` (`w/h/rot`); pieces lie **nearly flat** (`rot` ≈ −66°…−90°) so the two lengths read side-by-side |
 | `Long` box `#basketLong`  | stone frame `group-38510`, `left:676 top:408`, `570×435`; "Long" title centred **inside** the box — **Fredoka One** 92px, `#804206`, `opacity:.45` (written-into-sand look, no stroke) |
 | `Short` box `#basketShort`| stone frame `group-38510`, `right:42 top:408`, `570×435`; "Short" title inside the box, same style |
 
@@ -129,14 +129,14 @@ Items lie nearly flat so the two lengths read side-by-side. Long-category → **
 ## Assets (`assets/`, all WebP unless noted)
 
 **In use**
-- `background.webp` — sandy ground with foliage corners (also the splash bg)
+- `background.webp` — sandy play area with leafy/rock corners (1920×1080; also the splash bg; converted from PNG, 2.8 MB → 141 KB)
 - `group-38510.webp` — grey stone-pebble box frame (both drop boxes)
 - `pile.webp` — twig nest pile with feathers (bottom-left decoration; converted from PNG, 540 KB → 178 KB)
 - `cover-page.webp` — title-screen art ("Sort the items" with a nest in the "o"; converted from PNG, ~2.8 MB → 434 KB)
 - `play-button.svg` — round orange ▶ Play button on the title screen
 - `play-again.svg` — orange "Play Again" pill button on the finale screen
 - `last-screen.webp` — finale scene background: both stone boxes **filled with the sorted items** + the
-  nest in the corner (1672×941, 16:9; shown full-bleed via `center/cover`; converted from `last-screen.png`, 2.8 MB → 283 KB)
+  nest in the corner (1681×935, ~16:9; shown full-bleed via `center/cover`; converted from PNG, 2.9 MB → 317 KB)
 - `dialogue-box.svg` — **white speech bubble** with a thin gold-gradient border and a tail **bottom-left**
   (556×307, aspect ≈1.81). Used for the splash, hand-off + tutorial bee bubble, and the finale. Each
   bubble's box size + position is tuned per-screen so the **tail connects to the bee** without overlap and

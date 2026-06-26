@@ -758,11 +758,15 @@ function loadLevel(i, skipHint){
   const n = items.length;
   const IX0 = 805, IX1 = 1705, ITEM_CY = 255;        // item band: upper-right (centres x≈1030 / x≈1480), above the boxes (y408)
   const cellW = (IX1 - IX0) / n;
+  // randomly mirror the two slots so the long/short item isn't ALWAYS the same side —
+  // but ONLY in the game levels; the tutorial (level 0) keeps its fixed layout
+  const flip = (i !== 0) && (Math.random() < 0.5);
   // every piece flies OUT OF THE NEST PILE to its spot — the pile is the source
   const nr = nestEl.getBoundingClientRect();
   const nc = toStage(nr.left + nr.width/2, nr.top + nr.height*0.45);
   items.forEach((it,j)=>{
-    const cx = IX0 + cellW*((n-1-j) + 0.5);          // short item on the left, long on the right
+    const slot = flip ? j : (n-1-j);                 // which cell this item lands in (side varies per level)
+    const cx = IX0 + cellW*(slot + 0.5);
     const cy = ITEM_CY;
     // a level may pin an item's exact spot (left/top); otherwise centre it in its cell
     const left = (it.left !== undefined) ? it.left : cx - it.w/2;
