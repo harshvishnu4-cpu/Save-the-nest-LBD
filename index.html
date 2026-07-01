@@ -171,9 +171,7 @@
     filter:drop-shadow(0 0 10px rgba(255,255,255,.7)) drop-shadow(0 10px 8px rgba(60,30,0,.35));}
   .ghost img{display:block;width:100%;height:100%;}
 
-  /* ambient: falling leaves + floating air motes (decoration) */
-  .fleaf{position:absolute;z-index:3;pointer-events:none;will-change:transform,opacity;
-    filter:drop-shadow(0 2px 2px rgba(0,0,0,.12));}
+  /* ambient: floating air motes (decoration) */
   .amote{position:absolute;z-index:3;pointer-events:none;border-radius:50%;will-change:transform,opacity;
     background:radial-gradient(circle,#fff 0,rgba(255,250,205,.75) 45%,rgba(255,240,175,0) 72%);}
 
@@ -314,7 +312,7 @@
   /* ---------- CUSTOM CURSOR (themed grab-hand) ----------
      Shows ONLY over the draggable pieces (twigs, leaves, feathers) to signal
      "grab & drag"; everywhere else keeps the normal cursor. Hotspot ≈ fingertips. */
-  .item{ cursor:url('assets/cursor-pointer.svg') 28 4, auto; }
+  .item{ cursor:url('assets/cursor-pointer.webp') 28 4, auto; }
 </style>
 </head>
 <body>
@@ -1294,7 +1292,7 @@ function showHandoff(){
 /* ---------- FINALE (after the last level) ----------
    Honeycomb gate covers the screen and the finale scene (last-screen.webp) is
    built behind it. When the gate opens, the bee FLIES IN from off-screen, lands
-   (swaps to her standing pose), says "Now, that is some great sorting!", and a
+   (swaps to her standing pose), says "Now that was some great sorting!", and a
    Play Again button appears. */
 function showFinale(){
   let f, fly, bee, box, txt, btn;
@@ -1333,7 +1331,7 @@ function showFinale(){
         beeCheer();
         setTimeout(()=>{                        // …then she speaks
           box.classList.add('show');
-          typeWriter(txt, 'Now, that is some\ngreat sorting!', 13);
+          typeWriter(txt, 'Now that was some\ngreat sorting!', 13);
         }, 300);
         setTimeout(()=>btn.classList.add('show'), 1300);   // Play Again appears
       };
@@ -1365,29 +1363,6 @@ function enterFromCover(){
 }
 cover.addEventListener('click', enterFromCover);   // tap the button (or anywhere) to begin
 
-/* ---------- AMBIENT: falling leaves ---------- */
-function spawnLeaf(){
-  if(document.querySelectorAll('.fleaf').length > 7) return;
-  const leaf = document.createElement('img');
-  leaf.className = 'fleaf';
-  leaf.src = Math.random()<0.5 ? ART.leaf : ART.longleaf;
-  const size = 30 + Math.random()*40;
-  leaf.style.width = size+'px'; leaf.style.height='auto';
-  leaf.style.left = (Math.random()*1920)+'px';
-  leaf.style.top  = '-90px';
-  stage.appendChild(leaf);
-  const dx = (Math.random()*2-1)*180, sway = 70+Math.random()*70;
-  const rot = (Math.random()*2-1)*420, dur = 8000+Math.random()*5000;
-  const a = leaf.animate([
-    {transform:'translate(0,0) rotate(0deg)', opacity:0},
-    {opacity:.55, offset:.1},
-    {transform:`translate(${dx-sway}px,440px) rotate(${rot*0.45}deg)`, opacity:.55, offset:.5},
-    {transform:`translate(${dx+sway}px,860px) rotate(${rot*0.75}deg)`, opacity:.5,  offset:.8},
-    {transform:`translate(${dx}px,1200px) rotate(${rot}deg)`, opacity:0}
-  ], {duration:dur, easing:'ease-in-out', fill:'forwards'});
-  a.onfinish = ()=>leaf.remove();
-}
-
 /* ---------- AMBIENT: floating air motes ---------- */
 function spawnMote(){
   if(document.querySelectorAll('.amote').length > 14) return;
@@ -1413,14 +1388,12 @@ function spawnMote(){
 
 /* ---------- BOOT ---------- */
 // preload art that appears later so nothing pops in blank the first time
-['assets/bee-flying.webp', 'assets/dialogue-box.svg', 'assets/cursor-pointer.svg',
+['assets/bee-flying.webp', 'assets/dialogue-box.svg', 'assets/cursor-pointer.webp',
  'assets/transition-bee-comb.svg', 'assets/last-screen.webp', 'assets/play-again.svg', ...Object.values(ART)]
   .forEach(src=>{ const im = new Image(); im.src = src; });
 stage.classList.add('intro-mode');  // hide the gameplay UI until the entry animation
 // (the splash greeting is typed by enterFromCover once the cover is dismissed — see above)
-for(let i=0;i<3;i++) spawnLeaf();
 for(let i=0;i<8;i++) spawnMote();
-setInterval(spawnLeaf, 1900);
 setInterval(spawnMote, 750);
 </script>
 <!-- QA comment tool — only activates with ?qa=true in the URL -->

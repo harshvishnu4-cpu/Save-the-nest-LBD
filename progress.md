@@ -84,10 +84,10 @@ friendly queen-bee mascot.
    then flutters/flips down past the bottom). A short beat, then the next level's items **fly out of
    the nest pile automatically**; the leaves keep fluttering down over the transition (not cleared by
    `clearBoard` — they self-remove).
-9. **5 levels.** Finale (`showFinale`): after the last level, leaf confetti bursts, then the
+9. **6 levels.** Finale (`showFinale`): after the last level, leaf confetti bursts, then the
    **honeycomb gate** reveals the **finale scene** (`#finale`, full-bleed `last-screen.webp` — the
    two filled stone boxes + nest). The **bee flies in** from off-screen, lands (swaps to her standing
-   pose), says **"Now, that is some great sorting!"** in the speech bubble, and a **Play Again** button
+   pose), says **"Now that was some great sorting!"** in the speech bubble, and a **Play Again** button
    (`play-again.svg`) appears → tapping it gates back to a fresh game (level 0). (The old `#overlay`
    "Nest Saved!" screen is no longer used.)
 
@@ -145,8 +145,9 @@ Items lie nearly flat so the two lengths read side-by-side. Long-category → **
   appear only in the tutorial and finale.
 - `bee-1.webp` *(animated)* — standing/instructor + splash bee
 - `bee-flying.webp` *(animated)* — splash fly-out bee
-- `cursor-pointer.svg` — **grab-hand** cursor (dark near-black fill + white outline + soft shadow),
-  shown **only over `.item` pieces** (twigs/leaves/feathers); 60×63, hotspot at the fingertips (`28 4`)
+- `cursor-pointer.webp` — **grab-hand** cursor (dark-brown fill + darker outline + soft shadow),
+  shown **only over `.item` pieces** (twigs/leaves/feathers); 60×63 transparent WebP (rasterized from
+  the design SVG so it renders reliably as a CSS cursor), hotspot at the fingertips (`28 4`)
 - `transition-bee-comb.svg` — a single flat-top honeycomb hexagon (331×287), **tiled into a grid**
   for the cell transition (`honeycombGate`)
 - Items: `long-twig`, `small-twig`, `short-leaf`, `long-leaf`, `long-feather`, `long-feather-2`
@@ -170,13 +171,13 @@ all been **deleted**. New raster images get converted PNG→WebP via `sharp`.
   quiet square blip with slight pitch jitter; silent until audio is unlocked, skips spaces).
 - **Honeycomb cell** transition (`honeycombGate` — `transition-bee-comb.svg` hexagon tiled into a grid that pops in centre→out to cover, then dissolves to reveal).
 - **Guided tutorial** with box highlights (`runTutorial`) — message-only, skippable by any tap/drag.
-- **Custom cursor** — a themed golden **grab-hand** (`cursor-pointer.svg`) shows **only over the
+- **Custom cursor** — a themed **grab-hand** (`cursor-pointer.webp`) shows **only over the
   draggable pieces** (`.item` — twigs, leaves, feathers) to signal "grab & drag"; everywhere else
   keeps the normal cursor. Hotspot at the fingertips. The old top-down **bee cursor +
   instructor→cursor morph have been removed**.
 - **Idle nudge** — after ~11 s of no interaction the drag-hint ghost replays (`armIdle`/`idleFire`); any tap resets it.
 - **Juice:** sparkle-star burst + box scale-bump on correct drops (no green glow), **leaf confetti** on level complete,
-  ambient falling leaves + floating air motes, bee hover/cheer.
+  floating air motes, bee hover/cheer. (The ambient falling-leaf animation was removed.)
 
 ---
 
