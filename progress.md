@@ -29,8 +29,13 @@ friendly queen-bee mascot.
 - **Animation:** Web Animations API (`element.animate(...)`) for one-shot effects; CSS `@keyframes` for
   loops (hover, sway, pulse).
 - **Audio:** procedural **WebAudio** SFX (pickup, correct arpeggio, wrong buzz, fanfare) in an `Audio` IIFE
-  module + a looping `<audio>` BGM (`audio/Background music.mp3`, volume ~0.12). Audio is unlocked on the
+  module + a looping `<audio>` BGM (`audio/background-music.mp3`, volume ~0.12). Audio is unlocked on the
   first user gesture (autoplay-safe); a `bgm.paused` guard prevents double-play.
+- **Voice-over:** spoken dialogue clips via the `VoiceOver` module — one `<audio>` per line with an **mp3 +
+  ogg source** (browser plays whichever format is present; missing files stay silent). `typeWriter(el, text,
+  cps, voKey)` plays the matching clip and **suppresses the per-char typing ticks** while a voice-over runs.
+  Files expected in `audio/`: `vo-start` (Let us start sorting!), `vo-long` (Long items go here),
+  `vo-short` (Short items go here), `vo-turn` (Now, it is your turn!), `vo-finale` (Now that was some great sorting).
 - **Items** are `{art, cat}` — `art` = which PNG/WebP, `cat` = `'long'` | `'short'` (which box it belongs in).
 
 ---

@@ -591,6 +591,34 @@ const Audio = (()=>{
   return { ensure, startBgm, pickup, type, correct, wrong, buzz, fanfare, toggle, isOn:()=>on };
 })();
 
+/* ---------- VOICE-OVER (spoken dialogue clips) ----------
+   One <audio> per spoken line, each carrying an mp3 + an ogg source so the
+   browser plays whichever format is actually present in audio/. Missing files
+   just stay silent (the .play() promise rejection is ignored). See the key→file
+   map below — the game plays the matching clip whenever that dialogue is typed. */
+const VoiceOver = (()=>{
+  const bases = { start:'vo-start', long:'vo-long', short:'vo-short', turn:'vo-turn', finale:'vo-finale' };
+  const els = {};
+  for(const k in bases){
+    const a = document.createElement('audio'); a.preload = 'auto';
+    [['ogg','audio/ogg'],['mp3','audio/mpeg']].forEach(([ext,type])=>{
+      const s = document.createElement('source'); s.src = 'audio/'+bases[k]+'.'+ext; s.type = type; a.appendChild(s);
+    });
+    els[k] = a;
+  }
+  let current = null;
+  function play(key){
+    if(Audio.isOn && !Audio.isOn()) return;        // respect the sound state
+    const a = els[key]; if(!a) return;
+    if(current){ try{ current.pause(); current.currentTime = 0; }catch(e){} }
+    try{ a.currentTime = 0; }catch(e){}
+    a.play().catch(()=>{});                          // ignore autoplay blocks / missing files
+    current = a;
+  }
+  function stop(){ if(current){ try{ current.pause(); current.currentTime = 0; }catch(e){} } }
+  return { play, stop };
+})();
+
 /* ============================================================
    GAME ENGINE
 ============================================================ */
@@ -608,8 +636,9 @@ const ovIcon    = document.getElementById('ovIcon');
 /* ---------- TYPEWRITER TEXT ---------- */
 let _twTimer = null;
 function stopTypeWriter(){ if(_twTimer){ clearInterval(_twTimer); _twTimer = null; } }
-function typeWriter(el, text, cps){
+function typeWriter(el, text, cps, vo){
   stopTypeWriter();
+  if(vo) VoiceOver.play(vo);                 // play the matching spoken line, if any
   let i = 0;
   const step = 1000 / (cps || 11);          // slower, more deliberate default pace
   const render = n => { el.innerHTML = text.slice(0, n).replace(/\n/g, '<br>'); };
@@ -617,7 +646,7 @@ function typeWriter(el, text, cps){
   _twTimer = setInterval(()=>{
     const ch = text.charAt(i);              // the character being revealed this tick
     render(++i);
-    if(ch && ch.trim()) Audio.type();       // soft tick on visible characters (not spaces)
+    if(!vo && ch && ch.trim()) Audio.type(); // typing ticks only when there's NO voice-over
     if(i >= text.length){ clearInterval(_twTimer); _twTimer = null; }
   }, step);
 }
@@ -1139,11 +1168,11 @@ function runTutorial(){
   tutorialActive = true;
   let timer = null, done = false;
 
-  function setBubble(msg){
+  function setBubble(msg, vo){
     beeBubble.classList.add('show');       // fixed-size bubble (CSS) — text wraps inside the cream area
     beeBubble.classList.remove('pop'); void beeBubble.offsetWidth; beeBubble.classList.add('pop');
     setTimeout(()=>beeBubble.classList.remove('pop'), 220);
-    typeWriter(beeBubble, msg);            // type the message out character-by-character
+    typeWriter(beeBubble, msg, undefined, vo);   // type the message out (+ play its voice-over)
   }
   function clearTargets(){
     basketLong.classList.remove('hint'); basketShort.classList.remove('hint');
@@ -1180,7 +1209,7 @@ function runTutorial(){
     item.classList.add('tut-target');
     (isLong ? basketLong : basketShort).classList.add('hint');
     const msg = isLong ? 'Long items\ngo here.' : 'Short items\ngo here.';
-    setBubble(msg);
+    setBubble(msg, isLong ? 'long' : 'short');
     const typeMs = msg.length * (1000 / 11) + 250;   // typeWriter default ≈ 11 cps
     timer = setTimeout(()=>{                // instruction done → unlock just this piece + hint
       if(done) return;
@@ -1282,7 +1311,7 @@ function showHandoff(){
     // 2) the dialogue box appears, 3) then the text types out
     box.classList.add('show');
     const msg = 'Now, it is\nyour turn!';
-    setTimeout(()=>typeWriter(txt, msg, 11), 300);
+    setTimeout(()=>typeWriter(txt, msg, 11, 'turn'), 300);
     const speakMs = 300 + msg.length*(1000/11) + 1300;   // appear + typing + a beat, then she leaves
     autoT = setTimeout(leave, speakMs);
     h.addEventListener('click', leave);                   // tap to skip ahead
@@ -1331,7 +1360,7 @@ function showFinale(){
         beeCheer();
         setTimeout(()=>{                        // …then she speaks
           box.classList.add('show');
-          typeWriter(txt, 'Now that was some\ngreat sorting!', 13);
+          typeWriter(txt, 'Now that was some\ngreat sorting!', 13, 'finale');
         }, 300);
         setTimeout(()=>btn.classList.add('show'), 1300);   // Play Again appears
       };
@@ -1356,7 +1385,7 @@ function enterFromCover(){
     // flies out (startGame also fades the dialogue away).
     const introText = intro.querySelector('.intro-text');
     const msg = 'Let us start\nsorting!', cps = 12;
-    typeWriter(introText, msg, cps);
+    typeWriter(introText, msg, cps, 'start');
     const typeMs = (msg.length + 1) * (1000 / cps);
     setTimeout(startGame, typeMs + 2000);    // dialogue ends → +2s → bee leaves
   }, 320);
@@ -1400,3 +1429,15 @@ setInterval(spawnMote, 750);
 <script type="module" src="qa/qa-mode.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
