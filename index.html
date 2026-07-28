@@ -237,9 +237,9 @@
   #handoff{position:absolute;inset:0;z-index:80;cursor:pointer;
     background:#e9b94f url('assets/background.webp') center/cover no-repeat;}
   #handoff.out{animation:introOut .34s ease forwards;}
-  .handoff-bee{position:absolute;left:140px;top:250px;width:560px;height:auto;z-index:2;
+  .handoff-bee{position:absolute;left:110px;top:300px;width:520px;height:auto;z-index:2;
     filter:drop-shadow(0 18px 22px rgba(40,30,0,.32));will-change:transform,opacity;}
-  .handoff-box{position:absolute;left:560px;top:130px;width:540px;height:300px;z-index:3;opacity:0;
+  .handoff-box{position:absolute;left:540px;top:150px;width:520px;height:290px;z-index:3;opacity:0;
     background:url('assets/dialogue-box.svg') center/100% 100% no-repeat;
     display:flex;align-items:center;justify-content:center;
     padding:40px 52px 56px 50px;   /* centre text in the white area, clear of tail + hexagons */
@@ -267,11 +267,6 @@
   .finale-box.show{opacity:1;animation:introBubblePop .5s cubic-bezier(.2,1.5,.4,1) both;}
   .finale-text{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:41px;line-height:1.1;
     color:#6a4716;text-align:center;text-shadow:0 3px 0 #fff6d8;}
-  .finale-again{position:absolute;left:50%;bottom:70px;width:360px;height:auto;z-index:6;cursor:pointer;
-    opacity:0;transform:translateX(-50%) scale(.8);
-    filter:drop-shadow(0 10px 14px rgba(60,40,0,.4));
-    transition:opacity .35s ease, transform .35s cubic-bezier(.2,1.5,.4,1);}
-  .finale-again.show{opacity:1;transform:translateX(-50%) scale(1);animation:playPulse 1.7s ease-in-out infinite .4s;}
   .intro-bee{position:absolute;left:140px;top:290px;width:540px;height:auto;z-index:2;
     transform:scaleX(-1);   /* mirrored so she faces the dialogue box on the right */
     filter:drop-shadow(0 18px 22px rgba(40,30,0,.32));animation:introFloat 4.0s ease-in-out infinite;will-change:transform;}
@@ -581,6 +576,27 @@ const Audio = (()=>{
     for(let i=0;i<5;i++) chirp(1700+i*200, 0.5 + i*0.12, 0.09, 0.10);
   }
 
+  // soft "swoosh" for the honeycomb transition — a band-passed noise sweep + a sparkle
+  function whoosh(){
+    if(!on) return; ensure();
+    const t = ac.currentTime, dur = 0.5;
+    const buf = ac.createBuffer(1, Math.floor(ac.sampleRate*dur), ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i] = Math.random()*2 - 1;   // white noise
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const f = ac.createBiquadFilter(); f.type='bandpass'; f.Q.value=0.9;
+    f.frequency.setValueAtTime(480, t);
+    f.frequency.exponentialRampToValueAtTime(2600, t+dur*0.5);
+    f.frequency.exponentialRampToValueAtTime(700, t+dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.14, t+0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t); src.stop(t+dur+0.02);
+    chirp(1500, 0.1, 0.1, 0.06);                    // tiny sparkle accent
+  }
+
   function toggle(){
     on = !on;
     if(master) master.gain.value = on ? 0.9 : 0;
@@ -588,7 +604,7 @@ const Audio = (()=>{
     return on;
   }
 
-  return { ensure, startBgm, pickup, type, correct, wrong, buzz, fanfare, toggle, isOn:()=>on };
+  return { ensure, startBgm, pickup, type, correct, wrong, buzz, fanfare, whoosh, toggle, isOn:()=>on };
 })();
 
 /* ---------- VOICE-OVER (spoken dialogue clips) ----------
@@ -715,10 +731,11 @@ function resetIdle(){ stopDragHint(); armIdle(); }   // any tap dismisses the hi
 stage.addEventListener('pointerdown', resetIdle);    // count any interaction as activity
 // any first gesture unlocks audio (covers the auto-started intro, where no tap happened yet)
 stage.addEventListener('pointerdown', ()=>{ Audio.ensure(); Audio.startBgm(); });
-function showDragHint(){
+function showDragHint(item){
   stopDragHint();
-  const item = document.querySelector('.item:not(.placed)');
-  if(!item) return;
+  // demo a specific piece if given (e.g. after wrong drops); else the first unplaced one
+  if(!item || !item.classList) item = document.querySelector('.item:not(.placed)');
+  if(!item || item.classList.contains('placed')) return;
   const cat  = item.dataset.cat;
   const slot = cat==='long' ? catchLong : catchShort;
   const r    = item.style.getPropertyValue('--r') || '0deg';   // match the item's tilt
@@ -912,6 +929,14 @@ function wrong(el, slot){
   el.classList.add('wrong');
   setTimeout(()=>{ b.classList.remove('flash-bad'); el.classList.remove('wrong'); }, 460);
   snapHome(el);
+  // after 2 wrong tries on this piece, show the correct-drag ghost demo (for THIS piece)
+  const wc = (parseInt(el.dataset.wrong || '0', 10) + 1);
+  el.dataset.wrong = wc;
+  if(wc >= 2){
+    setTimeout(()=>{
+      if(!el.classList.contains('placed') && !el.classList.contains('dragging')) showDragHint(el);
+    }, 540);   // wait for the flash + snap-back to settle first
+  }
 }
 
 function place(el, slot){
@@ -1120,6 +1145,7 @@ function honeycombGate(onCovered, onDone){
     }
   }
   const CLOSE = 600, CLOSE_STAGGER = 820, HOLD = 220, OPEN = 620, OPEN_STAGGER = 880;
+  Audio.whoosh();                                    // swoosh as the cells sweep in to cover
   // CLOSE — cells pop in centre→out (slight overshoot + 1.06 overlap to hide seams)
   cells.forEach(c=>{
     const d = c.dist / maxDist;
@@ -1129,6 +1155,7 @@ function honeycombGate(onCovered, onDone){
   });
   setTimeout(()=>{
     if(onCovered) onCovered();                         // swap to gameplay while fully covered
+    Audio.whoosh();                                    // swoosh again as the cells open away
     // OPEN — cells shrink/spin away centre→out + the honey backing fades, revealing the game
     cells.forEach(c=>{
       const d = c.dist / maxDist;
@@ -1321,31 +1348,23 @@ function showHandoff(){
 /* ---------- FINALE (after the last level) ----------
    Honeycomb gate covers the screen and the finale scene (last-screen.webp) is
    built behind it. When the gate opens, the bee FLIES IN from off-screen, lands
-   (swaps to her standing pose), says "Now that was some great sorting!", and a
-   Play Again button appears. */
+   (swaps to her standing pose), and says "Now that was some great sorting!".
+   (End screen — no Play Again button.) */
 function showFinale(){
-  let f, fly, bee, box, txt, btn;
+  let f, fly, bee, box, txt;
   honeycombGate(
     ()=>{   // covered — build the finale scene behind the gate
       f = document.createElement('div'); f.id = 'finale';
       f.innerHTML =
         `<img class="finale-fly" src="assets/bee-flying.webp" alt="">
          <img class="finale-bee" src="assets/bee-1.webp" alt="Queen bee">
-         <div class="finale-box"><div class="finale-text"></div></div>
-         <img class="finale-again" src="assets/play-again.svg" alt="Play again">`;
+         <div class="finale-box"><div class="finale-text"></div></div>`;
       stage.appendChild(f);
       fly = f.querySelector('.finale-fly');
       bee = f.querySelector('.finale-bee');
       box = f.querySelector('.finale-box');
       txt = f.querySelector('.finale-text');
-      btn = f.querySelector('.finale-again');
       fly.style.transform = 'translate(-720px,-260px) scale(.7)';   // start off-screen (no flash)
-      // Play Again → gate back to a fresh game (level 0)
-      btn.addEventListener('click', ()=>{
-        if(btn.dataset.clicked) return; btn.dataset.clicked = '1';
-        Audio.buzz();
-        honeycombGate(()=>{ f.remove(); levelIdx = 0; loadLevel(0); });
-      });
     },
     ()=>{   // gate opened — fly the bee in, then she speaks, then Play Again appears
       const a = fly.animate([
@@ -1362,7 +1381,6 @@ function showFinale(){
           box.classList.add('show');
           typeWriter(txt, 'Now that was some\ngreat sorting!', 13, 'finale');
         }, 300);
-        setTimeout(()=>btn.classList.add('show'), 1300);   // Play Again appears
       };
     }
   );
@@ -1418,7 +1436,7 @@ function spawnMote(){
 /* ---------- BOOT ---------- */
 // preload art that appears later so nothing pops in blank the first time
 ['assets/bee-flying.webp', 'assets/dialogue-box.svg', 'assets/cursor-pointer.webp',
- 'assets/transition-bee-comb.svg', 'assets/last-screen.webp', 'assets/play-again.svg', ...Object.values(ART)]
+ 'assets/transition-bee-comb.svg', 'assets/last-screen.webp', ...Object.values(ART)]
   .forEach(src=>{ const im = new Image(); im.src = src; });
 stage.classList.add('intro-mode');  // hide the gameplay UI until the entry animation
 // (the splash greeting is typed by enterFromCover once the cover is dismissed — see above)

@@ -28,7 +28,8 @@ friendly queen-bee mascot.
   converts screen → stage coords accounting for the scale.
 - **Animation:** Web Animations API (`element.animate(...)`) for one-shot effects; CSS `@keyframes` for
   loops (hover, sway, pulse).
-- **Audio:** procedural **WebAudio** SFX (pickup, correct arpeggio, wrong buzz, fanfare) in an `Audio` IIFE
+- **Audio:** procedural **WebAudio** SFX (pickup, correct arpeggio, wrong buzz, fanfare, and a `whoosh`
+  swoosh played on each honeycomb transition) in an `Audio` IIFE
   module + a looping `<audio>` BGM (`audio/background-music.mp3`, volume ~0.12). Audio is unlocked on the
   first user gesture (autoplay-safe); a `bgm.paused` guard prevents double-play.
 - **Voice-over:** spoken dialogue clips via the `VoiceOver` module — one `<audio>` per line with an **mp3 +
@@ -83,7 +84,8 @@ friendly queen-bee mascot.
      Dragging a correct item over its box gives a subtle **scale lift** (no green glow — removed).
    - **Wrong:** the piece does a **gentle shake** and snaps home — **no red anywhere**. Both the
      wrong-box hover glow *and* the red drop-shadow on the dropped piece (`.item.wrong`) have been
-     removed; only the **correct** box gives a subtle scale lift (`glow-ok`).
+     removed; only the **correct** box gives a subtle scale lift (`glow-ok`). After **2 wrong tries on a
+     piece** (`el.dataset.wrong`), the **ghost-drag demo replays for that piece** (`showDragHint(el)`).
 8. **Level complete:** **leaf confetti** (`spawnCelebration`/`fireConfetti` — the game's leaf artwork
    (`ART.leaf`/`ART.longleaf`) bursts up + inward from the lower corners + a centre pop, arcs over,
    then flutters/flips down past the bottom). A short beat, then the next level's items **fly out of
@@ -92,9 +94,8 @@ friendly queen-bee mascot.
 9. **6 levels.** Finale (`showFinale`): after the last level, leaf confetti bursts, then the
    **honeycomb gate** reveals the **finale scene** (`#finale`, full-bleed `last-screen.webp` — the
    two filled stone boxes + nest). The **bee flies in** from off-screen, lands (swaps to her standing
-   pose), says **"Now that was some great sorting!"** in the speech bubble, and a **Play Again** button
-   (`play-again.svg`) appears → tapping it gates back to a fresh game (level 0). (The old `#overlay`
-   "Nest Saved!" screen is no longer used.)
+   pose), and says **"Now that was some great sorting!"** in the speech bubble. It's an **end screen —
+   no Play Again button** (removed). (The old `#overlay` "Nest Saved!" screen is also unused.)
 
 ---
 
@@ -139,7 +140,7 @@ Items lie nearly flat so the two lengths read side-by-side. Long-category → **
 - `pile.webp` — twig nest pile with feathers (bottom-left decoration; converted from PNG, 540 KB → 178 KB)
 - `cover-page.webp` — title-screen art ("Sort the items" with a nest in the "o"; converted from PNG, ~2.8 MB → 434 KB)
 - `play-button.svg` — round orange ▶ Play button on the title screen
-- `play-again.svg` — orange "Play Again" pill button on the finale screen
+- `play-again.svg` — orange "Play Again" pill button (no longer used — the finale is now an end screen; file kept in case it's re-added)
 - `last-screen.webp` — finale scene background: both stone boxes **filled with the sorted items** + the
   nest in the corner (1681×935, ~16:9; shown full-bleed via `center/cover`; converted from PNG, 2.9 MB → 317 KB)
 - `dialogue-box.svg` — **white speech bubble** with a thin gold-gradient border and a tail **bottom-left**
