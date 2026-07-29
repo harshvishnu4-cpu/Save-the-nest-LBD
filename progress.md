@@ -35,8 +35,10 @@ friendly queen-bee mascot.
 - **Voice-over:** spoken dialogue clips via the `VoiceOver` module — one `<audio>` per line with an **mp3 +
   ogg source** (browser plays whichever format is present; missing files stay silent). `typeWriter(el, text,
   cps, voKey)` plays the matching clip and **suppresses the per-char typing ticks** while a voice-over runs.
-  Files expected in `audio/`: `vo-start` (Let us start sorting!), `vo-long` (Long items go here),
+  Files expected in `audio/`: `vo-title` (Sort the Items — plays on the cover while it's shown, then the
+  cover fades to the greeting), `vo-start` (Let us start sorting!), `vo-long` (Long items go here),
   `vo-short` (Short items go here), `vo-turn` (Now, it is your turn!), `vo-finale` (Now that was some great sorting).
+  `VoiceOver.play(key, onEnd)` can chain — the cover uses it to sequence title → greeting without overlap.
 - **Items** are `{art, cat}` — `art` = which PNG/WebP, `cat` = `'long'` | `'short'` (which box it belongs in).
 
 ---

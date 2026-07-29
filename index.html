@@ -339,7 +339,7 @@
   <div id="intro">
     <img class="intro-bee" src="assets/bee-1.webp" alt="Queen bee">
     <img class="intro-nest" src="assets/pile.webp" alt="Twig nest pile">
-    <div class="intro-box"><div class="intro-text">Let us start<br>sorting!</div></div>
+    <div class="intro-box"><div class="intro-text"></div></div>
   </div>
 
   <!-- title / cover screen (shown first; tap Play to begin) -->
@@ -579,7 +579,7 @@ const Audio = (()=>{
   // soft "swoosh" for the honeycomb transition — a band-passed noise sweep + a sparkle
   function whoosh(){
     if(!on) return; ensure();
-    const t = ac.currentTime, dur = 0.5;
+    const t = ac.currentTime, dur = 0.55;
     const buf = ac.createBuffer(1, Math.floor(ac.sampleRate*dur), ac.sampleRate);
     const data = buf.getChannelData(0);
     for(let i=0;i<data.length;i++) data[i] = Math.random()*2 - 1;   // white noise
@@ -590,11 +590,21 @@ const Audio = (()=>{
     f.frequency.exponentialRampToValueAtTime(700, t+dur);
     const g = ac.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.14, t+0.08);
+    g.gain.exponentialRampToValueAtTime(0.26, t+0.08);   // louder swoosh
     g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
     src.connect(f); f.connect(g); g.connect(master);
     src.start(t); src.stop(t+dur+0.02);
-    chirp(1500, 0.1, 0.1, 0.06);                    // tiny sparkle accent
+    // bubbly "pop-pop-pop" on top — like the honeycomb cells popping in
+    for(let i=0;i<9;i++){
+      const tb = t + i*0.05;
+      const o = ac.createOscillator(); o.type='sine';
+      const bf = 360 + Math.random()*580;
+      o.frequency.setValueAtTime(bf, tb);
+      o.frequency.exponentialRampToValueAtTime(bf*1.8, tb+0.05);   // quick upward "bloop"
+      env(o, tb, 0.004, 0.06, 0.17);
+      o.start(tb); o.stop(tb+0.11);
+    }
+    chirp(1700, 0.12, 0.1, 0.09);                   // bright sparkle accent
   }
 
   function toggle(){
@@ -613,7 +623,7 @@ const Audio = (()=>{
    just stay silent (the .play() promise rejection is ignored). See the key→file
    map below — the game plays the matching clip whenever that dialogue is typed. */
 const VoiceOver = (()=>{
-  const bases = { start:'vo-start', long:'vo-long', short:'vo-short', turn:'vo-turn', finale:'vo-finale' };
+  const bases = { title:'vo-title', start:'vo-start', long:'vo-long', short:'vo-short', turn:'vo-turn', finale:'vo-finale' };
   const els = {};
   for(const k in bases){
     const a = document.createElement('audio'); a.preload = 'auto';
@@ -623,12 +633,16 @@ const VoiceOver = (()=>{
     els[k] = a;
   }
   let current = null;
-  function play(key){
-    if(Audio.isOn && !Audio.isOn()) return;        // respect the sound state
-    const a = els[key]; if(!a) return;
-    if(current){ try{ current.pause(); current.currentTime = 0; }catch(e){} }
+  // play(key[, onEnd]) — onEnd fires when the clip finishes, OR right away if it can't
+  // play (muted / blocked / missing), OR after a 3s safety cap, so callers can chain reliably.
+  function play(key, onEnd){
+    const done = onEnd ? (()=>{ let d=false; return ()=>{ if(d) return; d=true; onEnd(); }; })() : null;
+    if(Audio.isOn && !Audio.isOn()){ if(done) done(); return; }
+    const a = els[key]; if(!a){ if(done) done(); return; }
+    if(current && current!==a){ try{ current.pause(); current.currentTime = 0; }catch(e){} }
     try{ a.currentTime = 0; }catch(e){}
-    a.play().catch(()=>{});                          // ignore autoplay blocks / missing files
+    if(done){ const safety = setTimeout(done, 3000); a.onended = ()=>{ clearTimeout(safety); done(); }; }
+    a.play().catch(()=>{ if(done) done(); });        // blocked/missing → continue the chain
     current = a;
   }
   function stop(){ if(current){ try{ current.pause(); current.currentTime = 0; }catch(e){} } }
@@ -1027,7 +1041,7 @@ function levelComplete(){
     // both correct — confetti pops, then the next level's items fly in
     // (the confetti keeps fluttering down over the transition)
     const next = levelIdx + 1;
-    setTimeout(()=>{ levelIdx = next; loadLevel(next); }, 1600);
+    setTimeout(()=>{ Audio.whoosh(); levelIdx = next; loadLevel(next); }, 1600);  // swoosh as the new items fly in
   }
 }
 
@@ -1396,17 +1410,21 @@ let coverDismissed = false;
 function enterFromCover(){
   if(coverDismissed) return; coverDismissed = true;
   Audio.ensure(); Audio.startBgm();          // first gesture unlocks audio
-  cover.classList.add('out');                // fade the title out…
-  setTimeout(()=>{
-    cover.remove();
-    // play the greeting on the splash; once it finishes, wait 2s, then the bee
-    // flies out (startGame also fades the dialogue away).
-    const introText = intro.querySelector('.intro-text');
-    const msg = 'Let us start\nsorting!', cps = 12;
-    typeWriter(introText, msg, cps, 'start');
-    const typeMs = (msg.length + 1) * (1000 / cps);
-    setTimeout(startGame, typeMs + 2000);    // dialogue ends → +2s → bee leaves
-  }, 320);
+  // announce the title ("Sort the Items") while the cover is still up; once it
+  // finishes, fade to the splash and play the greeting — so they never overlap.
+  VoiceOver.play('title', ()=>{
+    cover.classList.add('out');              // fade the title out…
+    setTimeout(()=>{
+      cover.remove();
+      // play the greeting on the splash; once it finishes, wait 2s, then the bee
+      // flies out (startGame also fades the dialogue away).
+      const introText = intro.querySelector('.intro-text');
+      const msg = 'Let us start\nsorting!', cps = 12;
+      typeWriter(introText, msg, cps, 'start');
+      const typeMs = (msg.length + 1) * (1000 / cps);
+      setTimeout(startGame, typeMs + 2000);  // dialogue ends → +2s → bee leaves
+    }, 320);
+  });
 }
 cover.addEventListener('click', enterFromCover);   // tap the button (or anywhere) to begin
 
